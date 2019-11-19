@@ -138,3 +138,14 @@ def smooth_curve(raw_curve, smoothing_param=60):
     smoothed_curve = ndimage.gaussian_filter1d(raw_curve, sigma=smoothing_param)
 
     return smoothed_curve
+
+
+'''
+Returns the value of the linear function with paramters k (slope), m (intersect) over the specified position.
+k: double, float.
+m: double, float.
+pos: Numpy array.
+'''
+def line_array(k,m,pos):
+    y = k*pos + m
+    return y

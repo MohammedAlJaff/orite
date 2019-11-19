@@ -5,6 +5,8 @@ __pycache__/
 
 # C extensions
 *.so
+.ipynb_checkpoints
+test_script_mk.ipynb
 
 # Distribution / packaging
 .Python
