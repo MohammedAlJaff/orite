@@ -2,7 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+sum_of_squared_distances_jupyter.ipynb
 # C extensions
 *.so
 .ipynb_checkpoints
