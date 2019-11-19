@@ -138,3 +138,12 @@ def smooth_curve(raw_curve, smoothing_param=60):
     smoothed_curve = ndimage.gaussian_filter1d(raw_curve, sigma=smoothing_param)
 
     return smoothed_curve
+	
+'''
+Function: Returns the sum of the squared distances for each element in the arrays. Arrays must be of same length
+
+x: numpy array 
+y: numpy array
+'''
+def sum_of_squared_distances(x, y):
+    return np.sum((x-y)*(x-y))
