@@ -70,23 +70,50 @@ def cumilative_base_count(seq):
 def gc_skew_sliding_window(seq, window_rad=500):
 
     seq_length = len(seq)
+
+    if window_rad > seq_length:
+        raise Exception('ERROR - Window size is larger than sequence length')
+
+
+    extetend_seq =  seq[seq_length-window_rad:] + seq + seq[0:window_rad]
+    extetend_seq_length = len(extetend_seq)
+
+    c_b_c = cumilative_base_count(extetend_seq)
+
+    print('seq len: ', seq_length)
+    print('window_rad: ', window_rad)
+    print('extended seq length: ', extetend_seq_length)
+
+
     gc_vals = np.zeros([seq_length])
 
-    c_b_c = cumilative_base_count(seq)
+    for i in range(window_rad, window_rad+seq_length):
 
-    for i in range(window_rad, seq_length-window_rad):
+        #print(i)
+        left_indx = (i-window_rad)
+        right_indx = (i+window_rad)
 
-        left_indx = (i-window_rad) % seq_length
-        right_indx = (i+window_rad) % seq_length
+
 
         n_c_in_window = (c_b_c[1,right_indx] - c_b_c[1, left_indx])
         n_g_in_window = (c_b_c[2,right_indx] - c_b_c[2, left_indx])
 
+        if (n_g_in_window+n_c_in_window == 0):
+            print('opps at: ', i)
+
         gc_skew = (n_g_in_window-n_c_in_window)/(n_g_in_window+n_c_in_window)
-        gc_vals[i] = gc_skew
+        gc_vals[i-window_rad] = gc_skew
 
+        '''
+        if ((i-window_rad) % 100000 )== 0:
+            print('left_indx: ', left_indx)
+            print('current base indx: ', i)
+            print('right_indx: ', right_indx)
+        '''
 
-    return gc_vals
+    c_gc_vals = cumilative_skew(gc_vals)
+
+    return gc_vals, c_gc_vals
 
 #-------------------------
 
@@ -96,23 +123,50 @@ def gc_skew_sliding_window(seq, window_rad=500):
 def at_skew_sliding_window(seq, window_rad=500):
 
     seq_length = len(seq)
-    at_vals = np.zeros([seq_length])
 
-    c_b_c = cumilative_base_count(seq)
-
-    for i in range(window_rad, seq_length-window_rad):
-
-        left_indx = (i-window_rad) % seq_length
-        right_indx = (i+window_rad) % seq_length
-
-        n_a_in_window = (c_b_c[0,right_indx] - c_b_c[0, left_indx])
-        n_t_in_window = (c_b_c[3,right_indx] - c_b_c[3, left_indx])
-
-        at_skew = (n_a_in_window-n_t_in_window)/(n_a_in_window+n_t_in_window)
-        at_vals[i] = at_skew
+    if window_rad > seq_length:
+        raise Exception('ERROR - Window size is larger than sequence length')
 
 
-    return at_vals
+    extetend_seq =  seq[seq_length-window_rad:] + seq + seq[0:window_rad]
+    extetend_seq_length = len(extetend_seq)
+
+    c_b_c = cumilative_base_count(extetend_seq)
+
+    print('seq len: ', seq_length)
+    print('window_rad: ', window_rad)
+    print('extended seq length: ', extetend_seq_length)
+
+
+    gc_vals = np.zeros([seq_length])
+
+    for i in range(window_rad, window_rad+seq_length):
+
+        #print(i)
+        left_indx = (i-window_rad)
+        right_indx = (i+window_rad)
+
+        n_c_in_window = (c_b_c[0,right_indx] - c_b_c[0, left_indx])
+        n_g_in_window = (c_b_c[3,right_indx] - c_b_c[3, left_indx])
+
+        if (n_g_in_window+n_c_in_window == 0):
+            print('opps at: ', i)
+
+        gc_skew = (n_g_in_window-n_c_in_window)/(n_g_in_window+n_c_in_window)
+        gc_vals[i-window_rad] = gc_skew
+
+        '''
+        if ((i-window_rad) % 100000 )== 0:
+            print('left_indx: ', left_indx)
+            print('current base indx: ', i)
+            print('right_indx: ', right_indx)
+        '''
+
+    c_gc_vals = cumilative_skew(gc_vals)
+
+    return gc_vals, c_gc_vals
+
+
 
 
 #-------------------------
@@ -139,10 +193,10 @@ def smooth_curve(raw_curve, smoothing_param=60):
     smoothed_curve = ndimage.gaussian_filter1d(raw_curve, sigma=smoothing_param)
 
     return smoothed_curve
-	
+
 '''
 Function: Returns the sum of the squared distances for each element in the arrays. Arrays must be of same length
-x: numpy array 
+x: numpy array
 y: numpy array
 '''
 def sum_of_squared_distances(x, y):
