@@ -218,19 +218,19 @@ sequence: string of genome sequence
 kmer_length: int on how long kmers to look for
 circular: Boolean, True by default. Use False if genome is not circular or if a subsequence is used
 
-Output: A list of tuples. First element in tuple represents the kmer (String), the other elelment is a list. The first element in the list 
-represents how many occurences there are of the kmer in the investigated sequence. The following indices store the 
-positions on which the first base in the kmer is located on the sequence. The tuple are based in descending order 
-by how many occurences there are of the kmer in the sequence. 
-''' 
+Output: A list of tuples. First element in tuple represents the kmer (String), the other elelment is a list. The first element in the list
+represents how many occurences there are of the kmer in the investigated sequence. The following indices store the
+positions on which the first base in the kmer is located on the sequence. The tuple are based in descending order
+by how many occurences there are of the kmer in the sequence.
+'''
 def get_kmers(sequence, kmer_length, circular = True):
     kmer = ""
     kmer_dict = {}
     sequence_length = len(sequence)
-    
+
     if circular:
         sequence = sequence + sequence[0:kmer_length-1]
-        
+
         for i in range(sequence_length):
             kmer = sequence[i:(i+kmer_length)]
 
@@ -242,7 +242,7 @@ def get_kmers(sequence, kmer_length, circular = True):
 
             else:
                 kmer_dict.update({kmer: [1,i]})
-    else: 
+    else:
         for i in range(sequence_length-(kmer_length-1)):
             kmer = sequence[i:(i+kmer_length)]
 
@@ -254,17 +254,17 @@ def get_kmers(sequence, kmer_length, circular = True):
 
             else:
                 kmer_dict.update({kmer: [1,i]})
-    
-    kmer_dict = sorted(kmer_dict.items(), key = 
+
+    kmer_dict = sorted(kmer_dict.items(), key =
              lambda kv:(kv[1], kv[0]), reverse = True)
-    
+
     return kmer_dict
-	
+
 '''
-kmer_list: A list of tuples. First element in tuple represents the kmer (String), the other elelment is a list. The first element in the list 
-represents how many occurences there are of the kmer in the investigated sequence. The following indices store the 
-positions on which the first base in the kmer is located on the sequence. The tuple are based in descending order 
-by how many occurences there are of the kmer in the sequence. 
+kmer_list: A list of tuples. First element in tuple represents the kmer (String), the other elelment is a list. The first element in the list
+represents how many occurences there are of the kmer in the investigated sequence. The following indices store the
+positions on which the first base in the kmer is located on the sequence. The tuple are based in descending order
+by how many occurences there are of the kmer in the sequence.
 
 n: Number of tuples to return
 
@@ -272,13 +272,13 @@ Output: A list of the n tuples with kmers that occured the most in a sequence
 '''
 def get_top_n_kmers(kmer_list, n):
     return deepcopy(kmer_list[0:n])
-	
+
 
 '''
-kmer_list: A tuple. First element represents the kmer (String), the other elelment is a list. The first element in the list 
-represents how many occurences there are of the kmer in the investigated sequence. The following indices store the 
-positions on which the first base in the kmer is located on the sequence. The tuple are based in descending order 
-by how many occurences there are of the kmer in the sequence. 
+kmer_list: A tuple. First element represents the kmer (String), the other elelment is a list. The first element in the list
+represents how many occurences there are of the kmer in the investigated sequence. The following indices store the
+positions on which the first base in the kmer is located on the sequence. The tuple are based in descending order
+by how many occurences there are of the kmer in the sequence.
 
 n: A threshold for how many times a kmer must occur in a sequence for it to be considered relevant
 
@@ -292,4 +292,137 @@ def get_kmer_by_occurence(kmer_list, n):
             new_tuple = deepcopy(kmer_list[i])
             new_kmer_list.append(new_tuple)
     return new_kmer_list
-        
+
+
+
+
+#-------------- Genbank functions
+
+'''
+
+'''
+
+def raw_positions_strings_from_genbank(file_path):
+
+    recs = [rec for rec in SeqIO.parse(file_path, "genbank")]
+
+
+    raw_positions_str = []
+
+    for rec in recs:
+        feats = [feat for feat in rec.features if feat.type == "CDS"]
+        for feat in feats:
+            x = str((feat.location))
+            raw_positions_str.append(x)
+
+
+    return raw_positions_str
+
+
+
+'''
+PRIVATE / HELPER
+'''
+
+def raw_positions_strings_from_genbank(file_path):
+
+    recs = [rec for rec in SeqIO.parse(file_path, "genbank")]
+
+
+    raw_positions_str = []
+
+    for rec in recs:
+        feats = [feat for feat in rec.features if feat.type == "CDS"]
+        for feat in feats:
+            x = str((feat.location))
+            raw_positions_str.append(x)
+
+
+    return raw_positions_str
+
+'''
+PRIVATE / HELPER
+'''
+def split_strands(raw_pos_list):
+    plus_pos = []
+    neg_pos  = []
+
+    for row in raw_pos_list:
+
+
+        if row.find('+') == -1:
+            neg_pos.append(row)
+
+        if row.find('-') == -1:
+            plus_pos.append(row)
+
+    return plus_pos, neg_pos
+
+plus, neg = split_strands(raw_positions_str)
+
+
+
+
+
+
+'''
+PRIVATE / HELPER
+'''
+
+def make_into_valid_pos(strand_pos_raw):
+
+    interval_list = []
+
+    for row in strand_pos_raw:
+        m = re.findall(r'\d+', row)
+
+        #print(len(m))
+
+        start_p = int(m[0])
+        stop_p = int(m[len(m)-1])
+        interval_list.append((start_p, stop_p))
+
+    return interval_list
+
+
+'''
+PRIVATE / HELPER
+'''
+def get_non_coding_intervals(coding_intervals):
+    non_coding_intervals = []
+
+
+
+    if coding_intervals[0][0] != 0:
+
+        ith_non_coding_start = 0
+        ith_non_coding_stop = coding_intervals[0][0]-1
+
+        non_coding_intervals.append((ith_non_coding_start, ith_non_coding_stop))
+
+
+    for i in range(1, len(coding_intervals)):
+        ith_non_coding_start = coding_intervals[i-1][1]+1
+        ith_non_coding_stop = coding_intervals[i][0]-1
+
+        if ith_non_coding_stop-ith_non_coding_start>1:
+            non_coding_intervals.append((ith_non_coding_start, ith_non_coding_stop))
+
+    return non_coding_intervals
+
+
+
+
+
+'''
+PUBLIC
+'''
+def extract_seq_from_non_coding_intervals(non_coding_intervals, seq):
+
+    non_coding_seqs = []
+
+    for interval in non_coding_intervals:
+
+        non_coding_seqs.append(seq[interval[0]:interval[1]])
+
+    return non_coding_seqs
