@@ -2,6 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal, misc, ndimage
 from copy import deepcopy
+import os
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from Bio.SeqFeature import SeqFeature, FeatureLocation
+from Bio import SeqIO
+import re
+
 
 
 '''
@@ -302,22 +309,21 @@ def get_kmer_by_occurence(kmer_list, n):
 
 '''
 
-def raw_positions_strings_from_genbank(file_path):
+def genbank_to_non_coding_intervals(file_path):
 
-    recs = [rec for rec in SeqIO.parse(file_path, "genbank")]
+    raw_p = raw_positions_strings_from_genbank(file_path)
 
-
-    raw_positions_str = []
-
-    for rec in recs:
-        feats = [feat for feat in rec.features if feat.type == "CDS"]
-        for feat in feats:
-            x = str((feat.location))
-            raw_positions_str.append(x)
+    raw_plus, raw_neg = split_strands(raw_p)
 
 
-    return raw_positions_str
+    valid_plus = make_into_valid_pos(raw_plus)
+    valid_neg = make_into_valid_pos(raw_neg)
 
+
+    non_coding_plus = get_non_coding_intervals(valid_plus)
+    non_coding_neg = get_non_coding_intervals(valid_neg)
+
+    return non_coding_plus, non_coding_neg
 
 
 '''
@@ -357,11 +363,6 @@ def split_strands(raw_pos_list):
             plus_pos.append(row)
 
     return plus_pos, neg_pos
-
-plus, neg = split_strands(raw_positions_str)
-
-
-
 
 
 
