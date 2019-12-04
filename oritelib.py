@@ -24,7 +24,7 @@ def seq_from_fasta(file_path):
     sequence = ''
 
     for i in range(1, len(all_lines)):
-        sequence =  sequence + all_lines[i][0:len(all_lines[i])-2]
+        sequence =  sequence + all_lines[i][0:len(all_lines[i])-1]
 
     return sequence
 
