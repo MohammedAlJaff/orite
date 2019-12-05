@@ -267,6 +267,7 @@ def get_top_n_kmers(kmer_list, n):
     return deepcopy(kmer_list[0:n])
 
 
+
 '''
 kmer_list: A tuple. First element represents the kmer (String), the other elelment is a list. The first element in the list
 represents how many occurences there are of the kmer in the investigated sequence. The following indices store the
@@ -286,7 +287,17 @@ def get_kmer_by_occurence(kmer_list, n):
             new_kmer_list.append(new_tuple)
     return new_kmer_list
 
-
+def calc_kmer_density(kmer_list):
+    kmer_list_plus_d = []
+    for touple in kmer_list:
+        this_kmer = touple[0]
+        this_list = touple[1]
+        this_occurance = this_list[0]
+        start = this_list[1]
+        stop = this_list[len(this_list)-1]
+        this_density = this_list[0] /((stop-start))
+        kmer_list_plus_d.append((this_kmer, deepcopy(this_list), this_density))
+    return kmer_list_plus_d
 
 
 #-------------- Genbank functions
