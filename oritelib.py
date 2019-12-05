@@ -96,7 +96,6 @@ def gc_skew_sliding_window(seq, window_rad=500):
 
     for i in range(window_rad, window_rad+seq_length):
 
-        #print(i)
         left_indx = (i-window_rad)
         right_indx = (i+window_rad)
 
@@ -111,12 +110,6 @@ def gc_skew_sliding_window(seq, window_rad=500):
         gc_skew = (n_g_in_window-n_c_in_window)/(n_g_in_window+n_c_in_window)
         gc_vals[i-window_rad] = gc_skew
 
-        '''
-        if ((i-window_rad) % 100000 )== 0:
-            print('left_indx: ', left_indx)
-            print('current base indx: ', i)
-            print('right_indx: ', right_indx)
-        '''
 
     c_gc_vals = cumilative_skew(gc_vals)
 
@@ -161,13 +154,6 @@ def at_skew_sliding_window(seq, window_rad=500):
 
         gc_skew = (n_g_in_window-n_c_in_window)/(n_g_in_window+n_c_in_window)
         gc_vals[i-window_rad] = gc_skew
-
-        '''
-        if ((i-window_rad) % 100000 )== 0:
-            print('left_indx: ', left_indx)
-            print('current base indx: ', i)
-            print('right_indx: ', right_indx)
-        '''
 
     c_gc_vals = cumilative_skew(gc_vals)
 
@@ -404,14 +390,13 @@ def position_list_to_intervals(pos_list):
 
 
 
-    print("death")
     if pos_list[i+1] == current_start:
         current_stop = pos_list[i+1]
         crap_bag.append((current_start, current_stop))
 
-
-
-
+    if pos_list[i]+1==pos_list[i+1]:
+        current_stop = pos_list[i+1]
+        crap_bag.append((current_start,current_stop))
 
     return crap_bag
 
@@ -423,7 +408,6 @@ def interval_list_to_range_list(interval_list):
 
     crap_list = []
     for touple in interval_list:
-        print(touple)
         x = list(range(touple[0], touple[1]+1))
         crap_list.append(x)
 
@@ -481,7 +465,6 @@ def make_into_valid_pos(strand_pos_raw):
     for row in strand_pos_raw:
         m = re.findall(r'\d+', row)
 
-        #print(len(m))
 
         start_p = int(m[0])
         stop_p = int(m[len(m)-1])
@@ -519,8 +502,6 @@ def get_non_coding_intervals(coding_intervals, length):
         non_coding_start = coding_intervals[i][1]+1
         non_coding_stop = length-1
         non_coding_intervals.append((non_coding_start, non_coding_stop))
-    print('last coding interval: ', coding_intervals[i])
-    print('last non-coding interval: ', non_coding_intervals[len(non_coding_intervals)-1])
     return non_coding_intervals
 
 
