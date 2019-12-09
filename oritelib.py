@@ -352,10 +352,10 @@ NON CODING REGIONS CLASS: START
 Class: Non coding region object.
 '''
 class NC_region:
-    def __init__(self, start_stop_tuple):
-        self.start = int(start_stop_tuple[0])
-        self.stop = int(start_stop_tuple[1])
-        self.length = (self.stop - self.start) +1
+    def __init__(self, start, stop):
+        self.start = start
+        self.stop = stop
+        self.length = stop - start +1
         self.kmer_info = {}
 
     #def __str__(self):
@@ -371,19 +371,19 @@ class NC_region:
         self.gc_val = gc_val
 
     def add_kmer_counts(self, k):
-        kmer_dict = orite.get_kmers(self.sequence, k, circular=False)
+        kmer_dict = get_kmers(self.sequence, k, circular=False)
         self.kmer_info.update({k: kmer_dict})
 
     def filter_kmer_by_occurence(self, n):
         for key, value in self.kmer_info.items():
-            self.kmer_info[key] = orite.get_kmer_by_occurence(value, n)
+            self.kmer_info[key] = get_kmer_by_occurence(value, n)
 
     def filter_top_n_kmers(self, n):
         for key, value in self.kmer_info.items():
-            self.kmer_info[key] = orite.get_top_n_kmers(value, n)
+            self.kmer_info[key] = get_top_n_kmers(value, n)
     def calc_kmer_density(self):
         for key, value in self.kmer_info.items():
-            self.kmer_info[key] = orite.calc_kmer_density(value)
+            self.kmer_info[key] = calc_kmer_density(value)
 
 
 
