@@ -341,6 +341,82 @@ def get_kmers(sequence, kmer_length, circular = True):
 
 
 
+'''
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+NON CODING REGIONS CLASS: START
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+'''
+
+
+'''
+Class: Non coding region object.
+'''
+class NC_region:
+    def __init__(self, start_stop_tuple):
+        self.start = int(start_stop_tuple[0])
+        self.stop = int(start_stop_tuple[1])
+        self.length = (self.stop - self.start) +1
+        self.kmer_info = {}
+
+    #def __str__(self):
+        #return str(self.start)
+
+    def add_sequence(self,string):
+        self.sequence = string
+
+    def add_cgc_val(self,cgc_val):
+        self.cgc_val = cgc_val
+
+    def add_gc_val(self,gc_val):
+        self.gc_val = gc_val
+
+    def add_kmer_counts(self, k):
+        kmer_dict = orite.get_kmers(self.sequence, k, circular=False)
+        self.kmer_info.update({k: kmer_dict})
+
+    def filter_kmer_by_occurence(self, n):
+        for key, value in self.kmer_info.items():
+            self.kmer_info[key] = orite.get_kmer_by_occurence(value, n)
+
+    def filter_top_n_kmers(self, n):
+        for key, value in self.kmer_info.items():
+            self.kmer_info[key] = orite.get_top_n_kmers(value, n)
+    def calc_kmer_density(self):
+        for key, value in self.kmer_info.items():
+            self.kmer_info[key] = orite.calc_kmer_density(value)
+
+
+
+
+
+
+
+'''
+Function that assigns a cgc VALUE BASED SCORE TO A REGION
+'''
+
+def calc_score_for_NC_region(cgc_curve, nc_obj):
+    inter = list(range(nc_obj.start, nc_obj.stop+1))
+    region_cgc_vals = cgc_curve[inter]
+
+    score= -np.average(region_cgc_vals)
+
+    nc_obj.add_cgc_val(score)
+
+
+
+'''
+EXTRACTS A NON CODING SEQUENCE AND ASSIGNS IT TO THE NON CODING REGION BASED ON
+ITS START AND STOP PLACES.
+'''
+def add_sequence_to_region(seq, nc_obj):
+    nc_obj.add_sequence(seq[nc_obj.start:nc_obj.stop +1])
+
+
+
+
+
+
 
 
 '''
@@ -399,11 +475,7 @@ def get_kmer_by_occurence(kmer_list, n):
 
 '''
 Input: A kmer_list
-
-
-oU
-
-
+Output:
 '''
 
 def calc_kmer_density(kmer_list):
@@ -417,6 +489,44 @@ def calc_kmer_density(kmer_list):
         this_density = this_list[0] /((stop-start))
         kmer_list_plus_d.append((this_kmer, deepcopy(this_list), this_density))
     return kmer_list_plus_d
+
+
+
+
+
+'''
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+FUNCTIONS THAT OPERATE ON A REGION_LISTS
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+'''
+
+'''
+Filters a regions_list by length
+'''
+
+def filter_regions_by_length(regions_list, length):
+    new_region_list = []
+
+    for region in regions_list:
+        if region.length > length:
+            new_region_list.append(region)
+    return new_region_list
+
+
+
+'''
+Sorts a regions_list by each region objects score attribute.
+NOTE:
+THIS FUNCTION OPERATES ON THE INPUTED region_list itself.
+It doesnt return anything.
+'''
+def sort_regions_by_score(regions_list):
+    regions_list.sort(key=lambda x: x.cgc_val, reverse = True)
+    #regions_list.sort(reversed = True)
+
+
+
+
 
 
 
@@ -667,12 +777,6 @@ def get_length_genbank(file_path):
     return length
 
 #-------------------------
-
-
-
-
-
-
 
 
 
