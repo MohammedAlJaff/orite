@@ -12,6 +12,13 @@ import re
 
 
 '''
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+FUNCTIONS THAT EXTRACT FASTA FILE DATA: START
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+'''
+
+
+'''
 input: file path to a fasta file contaning a single sequence for the complete genome of a bacteria
 
 output: A string with only the base sequence
@@ -28,7 +35,79 @@ def seq_from_fasta(file_path):
 
     return sequence
 
+#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ----- FUNCTIONS THAT EXTRACT FASTA FILE DATA: END -----
+#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+
+'''
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+SLIDING WINDOW SKEW AND CUMILATIVE SKEW CALCULAATION FUNCTIONS.
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+'''
+
+
+'''
+input:
+    Fasta sequence (string)
+    window_rad (int). Default = 50 000
+
+Output:
+
+    final_gc: GC Skew values of max rotaed sequence
+
+    final_cgc: cumilative GC-skew value of max rotaded
+
+    max_rotated_fasta: Rotaed fasta sequence based on
+
+    max_cCG_indx_original_offset: Index of maximum cGC skeq value in the original fasta sqeuence.
+
+
+'''
+def max_rotate_seq_and_skew_calc(f, window_radius = 50000):
+
+    initial_pos_index = list(range(len(f)))
+
+
+    # Inital gc skew calc on original unrotaed sequence and find
+    # position at max CG skew value.
+    gc, cgc = orite.gc_skew_sliding_window(f, window_rad=window_radius)
+    max_indx = np.argmax(gc)
+    print('inital max gc skew indx', max_indx)
+
+
+    # Rotade sequence to begin at max cg-skew value and index.
+    new = f[max_indx:] + f[0:max_indx]
+    new_pos_index = initial_pos_index[max_indx:] + initial_pos_index[0:max_indx]
+
+
+    # Calc cg-skew for rotated sequence and find position at max cumilative CG skew value.
+    new_gc, new_cgc = orite.gc_skew_sliding_window(new, window_rad=window_radius)
+    cGC_max_indx = np.argmax(new_cgc)
+    print('max cgc skew indx', cGC_max_indx)
+
+
+    # Final rotation of sequence and final gc calc results
+    final = new[cGC_max_indx:] + new[0:cGC_max_indx]
+    final_pos_index = new_pos_index[cGC_max_indx:]+new_pos_index[0:cGC_max_indx]
+
+
+    final_gc, final_cgc = orite.gc_skew_sliding_window(final, window_rad=window_radius)
+
+
+    # Return sequence rotated to max
+    max_rotated_fasta = final
+
+    max_cCG_indx_original_offset = (max_indx + cGC_max_indx)% len(fasta)
+
+    return final_gc, final_cgc, max_rotated_fasta, max_cCG_indx_original_offset
+
 #-------------------------
+
+
 
 '''
 input: a string representing the genome sequence
@@ -87,9 +166,9 @@ def gc_skew_sliding_window(seq, window_rad=500):
 
     c_b_c = cumilative_base_count(extetend_seq)
 
-    print('seq len: ', seq_length)
-    print('window_rad: ', window_rad)
-    print('extended seq length: ', extetend_seq_length)
+    #print('seq len: ', seq_length)
+    #print('window_rad: ', window_rad)
+    #print('extended seq length: ', extetend_seq_length)
 
 
     gc_vals = np.zeros([seq_length])
@@ -188,6 +267,8 @@ def smooth_curve(raw_curve, smoothing_param=60):
     return smoothed_curve
 
 '''
+UNUSED AS OF 5TH DEC
+
 Function: Returns the sum of the squared distances for each element in the arrays. Arrays must be of same length
 x: numpy array
 y: numpy array
@@ -197,6 +278,8 @@ def sum_of_squared_distances(x, y):
 
 
 '''
+UNUSED AS OF 5TH DEC
+
 Returns the value of the linear function with paramters k (slope), m (intersect) over the specified position.
 k: double, float.
 m: double, float.
@@ -253,6 +336,96 @@ def get_kmers(sequence, kmer_length, circular = True):
 
     return kmer_dict
 
+
+
+
+
+
+'''
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+NON CODING REGIONS CLASS: START
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+'''
+
+
+'''
+Class: Non coding region object.
+'''
+class NC_region:
+    def __init__(self, start_stop_tuple):
+        self.start = int(start_stop_tuple[0])
+        self.stop = int(start_stop_tuple[1])
+        self.length = (self.stop - self.start) +1
+        self.kmer_info = {}
+
+    #def __str__(self):
+        #return str(self.start)
+
+    def add_sequence(self,string):
+        self.sequence = string
+
+    def add_cgc_val(self,cgc_val):
+        self.cgc_val = cgc_val
+
+    def add_gc_val(self,gc_val):
+        self.gc_val = gc_val
+
+    def add_kmer_counts(self, k):
+        kmer_dict = orite.get_kmers(self.sequence, k, circular=False)
+        self.kmer_info.update({k: kmer_dict})
+
+    def filter_kmer_by_occurence(self, n):
+        for key, value in self.kmer_info.items():
+            self.kmer_info[key] = orite.get_kmer_by_occurence(value, n)
+
+    def filter_top_n_kmers(self, n):
+        for key, value in self.kmer_info.items():
+            self.kmer_info[key] = orite.get_top_n_kmers(value, n)
+    def calc_kmer_density(self):
+        for key, value in self.kmer_info.items():
+            self.kmer_info[key] = orite.calc_kmer_density(value)
+
+
+
+
+
+
+
+'''
+Function that assigns a cgc VALUE BASED SCORE TO A REGION
+'''
+
+def calc_score_for_NC_region(cgc_curve, nc_obj):
+    inter = list(range(nc_obj.start, nc_obj.stop+1))
+    region_cgc_vals = cgc_curve[inter]
+
+    score= -np.average(region_cgc_vals)
+
+    nc_obj.add_cgc_val(score)
+
+
+
+'''
+EXTRACTS A NON CODING SEQUENCE AND ASSIGNS IT TO THE NON CODING REGION BASED ON
+ITS START AND STOP PLACES.
+'''
+def add_sequence_to_region(seq, nc_obj):
+    nc_obj.add_sequence(seq[nc_obj.start:nc_obj.stop +1])
+
+
+
+
+
+
+
+
+'''
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+FUNCTIONS THAT OPERATE ON KMER_LISTS
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+'''
+
+
 '''
 kmer_list: A list of tuples. First element in tuple represents the kmer (String), the other elelment is a list. The first element in the list
 represents how many occurences there are of the kmer in the investigated sequence. The following indices store the
@@ -267,8 +440,18 @@ def get_top_n_kmers(kmer_list, n):
     return deepcopy(kmer_list[0:n])
 
 
+
+
 '''
-kmer_list: A tuple. First element represents the kmer (String), the other elelment is a list. The first element in the list
+kmer_list: A list of tuples
+[('ATTTAT', [#OCCURANCE, POS1, POS2, POS,3]),
+('GGGTTTT', [#OCCURANCE, POS1, POS2, POS,3]),
+('GGGGCCG', [#OCCURANCE, POS1, POS2, POS,3]),
+...
+...
+    ]
+
+For each tuple A tuple. First element represents the kmer (String), the 2nd elelment is a list. The first element in the list
 represents how many occurences there are of the kmer in the investigated sequence. The following indices store the
 positions on which the first base in the kmer is located on the sequence. The tuple are based in descending order
 by how many occurences there are of the kmer in the sequence.
@@ -289,10 +472,71 @@ def get_kmer_by_occurence(kmer_list, n):
 
 
 
-#-------------- Genbank functions
 
 '''
+Input: A kmer_list
+Output:
+'''
 
+def calc_kmer_density(kmer_list):
+    kmer_list_plus_d = []
+    for touple in kmer_list:
+        this_kmer = touple[0]
+        this_list = touple[1]
+        this_occurance = this_list[0]
+        start = this_list[1]
+        stop = this_list[len(this_list)-1]
+        this_density = this_list[0] /((stop-start))
+        kmer_list_plus_d.append((this_kmer, deepcopy(this_list), this_density))
+    return kmer_list_plus_d
+
+
+
+
+
+'''
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+FUNCTIONS THAT OPERATE ON A REGION_LISTS
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+'''
+
+'''
+Filters a regions_list by length
+'''
+
+def filter_regions_by_length(regions_list, length):
+    new_region_list = []
+
+    for region in regions_list:
+        if region.length > length:
+            new_region_list.append(region)
+    return new_region_list
+
+
+
+'''
+Sorts a regions_list by each region objects score attribute.
+NOTE:
+THIS FUNCTION OPERATES ON THE INPUTED region_list itself.
+It doesnt return anything.
+'''
+def sort_regions_by_score(regions_list):
+    regions_list.sort(key=lambda x: x.cgc_val, reverse = True)
+    #regions_list.sort(reversed = True)
+
+
+
+
+
+
+
+
+
+
+'''
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+FUNCTIONS THAT ARE USED TO EXTRACT AND PARSE GENBANK DATA: START
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 '''
 
 '''
@@ -348,6 +592,7 @@ def interval_list_to_position_set(interval_list):
 
     return pos_set
 
+#-------------------------
 
 '''
 Input: non-coding intervals for each strand
@@ -362,8 +607,12 @@ def get_true_nc_positions(nc_plus_intervals, nc_neg_intervals):
     intersect_set_list.sort()
     return intersect_set_list
 
+#-------------------------
+
+
 
 '''
+
 Input: list of all non-coding positions.
 Output: List of tuples with non-coding intervals'''
 
@@ -400,6 +649,10 @@ def position_list_to_intervals(pos_list):
 
     return crap_bag
 
+#-------------------------
+
+
+#-------------------------
 '''
 Input: List of tuples with non-coding intervals
 Output: list of range of each non-coding interval
@@ -413,9 +666,11 @@ def interval_list_to_range_list(interval_list):
 
     return crap_list
 
+#-------------------------
+
 
 '''
-PRIVATE / HELPER
+INTERNAL / PRIVATE / HELPER
 '''
 
 def raw_positions_strings_from_genbank(file_path):
@@ -434,8 +689,11 @@ def raw_positions_strings_from_genbank(file_path):
 
     return raw_positions_str
 
+#-------------------------
+
+
 '''
-PRIVATE / HELPER
+INTERNAL / PRIVATE / HELPER
 '''
 def split_strands(raw_pos_list):
     plus_pos = []
@@ -452,10 +710,11 @@ def split_strands(raw_pos_list):
 
     return plus_pos, neg_pos
 
+#-------------------------
 
 
 '''
-PRIVATE / HELPER
+INTERNAL / PRIVATE / HELPER
 '''
 
 def make_into_valid_pos(strand_pos_raw):
@@ -472,15 +731,13 @@ def make_into_valid_pos(strand_pos_raw):
 
     return interval_list
 
+#-------------------------
 
 '''
-PRIVATE / HELPER
+INTERNAL / PRIVATE / HELPER
 '''
-
-
 def get_non_coding_intervals(coding_intervals, length):
     non_coding_intervals = []
-
 
 
     if coding_intervals[0][0] != 0:
@@ -504,12 +761,23 @@ def get_non_coding_intervals(coding_intervals, length):
         non_coding_intervals.append((non_coding_start, non_coding_stop))
     return non_coding_intervals
 
+#-------------------------
 
+
+'''
+input: genbank path (string)
+output: genome length/Size (int)
+
+Returns the length of the organism genome 'contained' in the genbank file
+'''
 def get_length_genbank(file_path):
     recs = [rec for rec in SeqIO.parse(file_path, "genbank")]
     for rec in recs:
         length = len(rec.seq)
     return length
+
+#-------------------------
+
 
 
 '''
