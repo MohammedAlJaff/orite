@@ -357,6 +357,8 @@ class NC_region:
         self.stop = stop
         self.length = stop - start +1
         self.kmer_info = {}
+        self.max_relative_start = -1
+        self.max_relative_stop = -1
 
     #def __str__(self):
         #return str(self.start)
@@ -384,6 +386,10 @@ class NC_region:
     def calc_kmer_density(self):
         for key, value in self.kmer_info.items():
             self.kmer_info[key] = calc_kmer_density(value)
+	
+    def add_max_relative_pos(self, max_offset, whole_genome_length):
+        self.max_relative_start = (self.start - max_offset)%whole_genome_length
+        self.max_relative_stop = (self.stop - max_offset)%whole_genome_length
 
 
 
@@ -792,3 +798,96 @@ def extract_seq_from_non_coding_intervals(non_coding_intervals, seq):
         non_coding_seqs.append(seq[interval[0]:interval[1]])
 
     return non_coding_seqs
+
+'''
+
+'''
+
+'''
+Input: a list of non-coding intervals
+Output: a list of the objects form NC_region class, containing sequence and cgc values
+'''
+
+def nc_intervals_to_nc_objects(nc_intervals, seq, cgc):
+    nc_objcts = []
+    for i in range(len(nc_intervals)):
+        nc_obj = orite.NC_region(nc_intervals[i][0], nc_intervals[i][1])
+        orite.add_sequence_to_region(seq, nc_obj)
+        orite.calc_score_for_NC_region(cgc, nc_obj)
+        nc_objcts.append(nc_obj)
+    return nc_objcts
+	
+	
+def get_kmers_from_region_list(region_list, k_array):
+    new_list = []
+    for region in region_list:
+        for k in k_array:
+            region.add_kmer_counts(k)
+        new_list.append(region)
+    return new_list
+	
+	
+def filter_region_list_by_kmer_occurence(region_list, n):
+    new_list = []
+    for region in region_list:
+        region.filter_kmer_by_occurence(n)
+        new_list.append(region)
+    return new_list
+
+
+def has_empty_kmer_info(nc_region):
+
+    for key, value in nc_region.kmer_info.items():
+        if len(nc_region.kmer_info[key]) != 0:
+            return False
+    
+    return True
+	
+	
+def filter_empty_kmer_regions(region_list):
+    new_list = []
+    
+    for region in region_list:
+        if not has_empty_kmer_info(region):
+            new_list.append(region)
+    return new_list
+
+
+
+def plot_region_list(region_list, curve):
+    
+    region_intervals = []
+    
+    for region in region_list:
+        this_interval = (region.start, region.stop)
+        region_intervals.append(this_interval)
+    
+    regions_pos_set = orite.interval_list_to_position_set(region_intervals)
+    region_pos_list = list(regions_pos_set)
+    region_pos_list.sort()
+    
+    relevant_pos_list = np.array(region_pos_list)
+    
+    relevant_curve_point = curve[relevant_pos_list]
+    
+    
+    plt.figure(figsize=[40,10])
+    plt.plot(curve)
+    plt.plot(relevant_pos_list, relevant_curve_point, 'x')
+    plt.title(str(len(region_list)))
+   
+def print_region_list_kmer_info(region_list):
+    i = 0
+    for region in region_list:
+        print('region:', i, '---',' score: ', region.cgc_val, '---- pos: ', region.start, '---- max_relative_start_pos', region.max_relative_start)
+
+        for key, value in region.kmer_info.items():
+            print('\tk=', key,)
+            for thing in value:
+                print('\t', thing[0], ' - ', thing[1])
+
+        print('\t-------')
+
+        i = i+1
+   
+    
