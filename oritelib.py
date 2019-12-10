@@ -890,4 +890,11 @@ def print_region_list_kmer_info(region_list):
 
         i = i+1
    
+ def add_max_relative_position(region_list, genome_length, max_offset):
+    new_list = []
+    for region in region_list:
+        add_max_relative_position(region, max_offset, genome_length)
+        new_list.append(region)
+    
+    return new_list
     
