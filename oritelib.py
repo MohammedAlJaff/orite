@@ -74,7 +74,7 @@ def max_rotate_seq_and_skew_calc(f, window_radius = 50000):
 
     # Inital gc skew calc on original unrotaed sequence and find
     # position at max CG skew value.
-    gc, cgc = orite.gc_skew_sliding_window(f, window_rad=window_radius)
+    gc, cgc = gc_skew_sliding_window(f, window_rad=window_radius)
     max_indx = np.argmax(gc)
     print('inital max gc skew indx', max_indx)
 
@@ -85,7 +85,7 @@ def max_rotate_seq_and_skew_calc(f, window_radius = 50000):
 
 
     # Calc cg-skew for rotated sequence and find position at max cumilative CG skew value.
-    new_gc, new_cgc = orite.gc_skew_sliding_window(new, window_rad=window_radius)
+    new_gc, new_cgc = gc_skew_sliding_window(new, window_rad=window_radius)
     cGC_max_indx = np.argmax(new_cgc)
     print('max cgc skew indx', cGC_max_indx)
 
@@ -95,13 +95,13 @@ def max_rotate_seq_and_skew_calc(f, window_radius = 50000):
     final_pos_index = new_pos_index[cGC_max_indx:]+new_pos_index[0:cGC_max_indx]
 
 
-    final_gc, final_cgc = orite.gc_skew_sliding_window(final, window_rad=window_radius)
+    final_gc, final_cgc = gc_skew_sliding_window(final, window_rad=window_radius)
 
 
     # Return sequence rotated to max
     max_rotated_fasta = final
 
-    max_cCG_indx_original_offset = (max_indx + cGC_max_indx)% len(fasta)
+    max_cCG_indx_original_offset = (max_indx + cGC_max_indx)% len(f)
 
     return final_gc, final_cgc, max_rotated_fasta, max_cCG_indx_original_offset
 
@@ -386,13 +386,14 @@ class NC_region:
     def calc_kmer_density(self):
         for key, value in self.kmer_info.items():
             self.kmer_info[key] = calc_kmer_density(value)
-	
+
     def add_max_relative_pos(self, max_offset, whole_genome_length):
-        self.max_relative_start = (self.start - max_offset)%whole_genome_length
-        self.max_relative_stop = (self.stop - max_offset)%whole_genome_length
-
-
-
+        if self.start >= max_offset:
+            self.max_relative_start = self.start - max_offset
+            self.max_relative_stop = self.stop - max_offset
+        else:
+            self.max_relative_start = whole_genome_length - (max_offset - self.start)
+            self.max_relative_stop = whole_genome_length - (max_offset - self.stop)
 
 
 
@@ -401,13 +402,25 @@ class NC_region:
 Function that assigns a cgc VALUE BASED SCORE TO A REGION
 '''
 
-def calc_score_for_NC_region(cgc_curve, nc_obj):
-    inter = list(range(nc_obj.start, nc_obj.stop+1))
-    region_cgc_vals = cgc_curve[inter]
+def calc_score_for_NC_region(cgc_curve, nc_obj, rotated = False):
 
-    score= -np.average(region_cgc_vals)
+    if rotated:
+        inter = list(range(nc_obj.max_relative_start, nc_obj.max_relative_stop+1))
+        region_cgc_vals = cgc_curve[inter]
 
-    nc_obj.add_cgc_val(score)
+        score= -np.average(region_cgc_vals)
+
+        nc_obj.add_cgc_val(score)
+    else:
+        inter = list(range(nc_obj.start, nc_obj.stop+1))
+        region_cgc_vals = cgc_curve[inter]
+
+        score= -np.average(region_cgc_vals)
+
+        nc_obj.add_cgc_val(score)
+
+
+
 
 
 
@@ -808,16 +821,33 @@ Input: a list of non-coding intervals
 Output: a list of the objects form NC_region class, containing sequence and cgc values
 '''
 
-def nc_intervals_to_nc_objects(nc_intervals, seq, cgc):
+def nc_intervals_to_nc_objects(nc_intervals, og_seq):
     nc_objcts = []
     for i in range(len(nc_intervals)):
-        nc_obj = orite.NC_region(nc_intervals[i][0], nc_intervals[i][1])
-        orite.add_sequence_to_region(seq, nc_obj)
-        orite.calc_score_for_NC_region(cgc, nc_obj)
+        nc_obj = NC_region(nc_intervals[i][0], nc_intervals[i][1])
+        add_sequence_to_region(og_seq, nc_obj)
+        #orite.calc_score_for_NC_region(cgc, nc_obj)
         nc_objcts.append(nc_obj)
     return nc_objcts
-	
-	
+
+
+
+
+
+
+def calc_score_over_region_list(region_list, curve, rotated):
+    new_list = []
+    for region in region_list:
+        calc_score_for_NC_region(curve, region, rotated)
+        new_list.append(region)
+    return new_list
+
+
+
+
+
+
+
 def get_kmers_from_region_list(region_list, k_array):
     new_list = []
     for region in region_list:
@@ -825,8 +855,8 @@ def get_kmers_from_region_list(region_list, k_array):
             region.add_kmer_counts(k)
         new_list.append(region)
     return new_list
-	
-	
+
+
 def filter_region_list_by_kmer_occurence(region_list, n):
     new_list = []
     for region in region_list:
@@ -840,13 +870,13 @@ def has_empty_kmer_info(nc_region):
     for key, value in nc_region.kmer_info.items():
         if len(nc_region.kmer_info[key]) != 0:
             return False
-    
+
     return True
-	
-	
+
+
 def filter_empty_kmer_regions(region_list):
     new_list = []
-    
+
     for region in region_list:
         if not has_empty_kmer_info(region):
             new_list.append(region)
@@ -854,28 +884,33 @@ def filter_empty_kmer_regions(region_list):
 
 
 
-def plot_region_list(region_list, curve):
-    
+def plot_region_list(region_list, curve, rotated = False):
+
     region_intervals = []
-    
-    for region in region_list:
-        this_interval = (region.start, region.stop)
-        region_intervals.append(this_interval)
-    
-    regions_pos_set = orite.interval_list_to_position_set(region_intervals)
+
+    if rotated:
+        for region in region_list:
+            this_interval = (region.max_relative_start, region.max_relative_stop)
+            region_intervals.append(this_interval)
+    else:
+        for region in region_list:
+            this_interval = (region.start, region.stop)
+            region_intervals.append(this_interval)
+
+    regions_pos_set = interval_list_to_position_set(region_intervals)
     region_pos_list = list(regions_pos_set)
     region_pos_list.sort()
-    
+
     relevant_pos_list = np.array(region_pos_list)
-    
+
     relevant_curve_point = curve[relevant_pos_list]
-    
-    
+
+
     plt.figure(figsize=[40,10])
     plt.plot(curve)
     plt.plot(relevant_pos_list, relevant_curve_point, 'x')
     plt.title(str(len(region_list)))
-   
+
 def print_region_list_kmer_info(region_list):
     i = 0
     for region in region_list:
@@ -889,12 +924,11 @@ def print_region_list_kmer_info(region_list):
         print('\t-------')
 
         i = i+1
-   
- def add_max_relative_position(region_list, genome_length, max_offset):
+
+def add_max_relative_position(region_list, genome_length, max_offset):
     new_list = []
     for region in region_list:
-        add_max_relative_position(region, max_offset, genome_length)
+        region.add_max_relative_pos(max_offset, genome_length)
         new_list.append(region)
-    
+
     return new_list
-    
