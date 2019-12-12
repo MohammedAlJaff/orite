@@ -395,7 +395,31 @@ class NC_region:
             self.max_relative_start = whole_genome_length - (max_offset - self.start)
             self.max_relative_stop = whole_genome_length - (max_offset - self.stop)
 
+    def filter_out_empty_kmer_lists_in_kmer_dict(self):
 
+        new_dict = {}
+
+        for key, value in self.kmer_info.items():
+            if len(value) != 0:
+                new_dict.update({key:value})
+            else:
+                #print(key)
+                #print(value, '')
+
+        self.kmer_info = new_dict
+
+
+
+    def sort_kmer_info_by_density(self):
+
+        new_dict = {}
+        for key, value in self.kmer_info.items():
+
+            value.sort(key= lambda x:x[2], reverse=True)
+
+            new_dict.update({key:value})
+
+        self.kmer_info = new_dict
 
 
 '''
