@@ -402,9 +402,6 @@ class NC_region:
         for key, value in self.kmer_info.items():
             if len(value) != 0:
                 new_dict.update({key:value})
-            else:
-                #print(key)
-                #print(value, '')
 
         self.kmer_info = new_dict
 
@@ -421,7 +418,22 @@ class NC_region:
 
         self.kmer_info = new_dict
 
+    def remove_kmer_overlap(self):
+        new_dict = {}
+        for key, value in self.kmer_info.items():
+            new_value = []
+            for list in value:
+                overlap = False
+                for i in range(1,len(list[1])-1):
+                    if (list[1][i+1] - list[1][i]) < key:
+                        overlap = True
+                        break
 
+                if not overlap:
+                    new_tuple = (list[0],list[1],list[2])
+                    new_value.append(new_tuple)
+            new_dict.update({key:new_value})
+        self.kmer_info = new_dict
 '''
 Function that assigns a cgc VALUE BASED SCORE TO A REGION
 '''
@@ -634,6 +646,9 @@ def interval_list_to_position_set(interval_list):
         pos_set.update(interval_range)
 
     return pos_set
+
+
+
 
 #-------------------------
 
@@ -955,4 +970,70 @@ def add_max_relative_position(region_list, genome_length, max_offset):
         region.add_max_relative_pos(max_offset, genome_length)
         new_list.append(region)
 
+    return new_list
+
+
+'''
+Incorporates the relative positions of each nc region
+from max rotated fasta
+
+'''
+def get_phased_nc_region_list(nc_intervals, og_fasta, max_offset, max_cgc):
+    nc_objects = orite.nc_intervals_to_nc_objects(nc_intervals, og_fasta)
+    phased_nc_objects = orite.add_max_relative_position(nc_objects, len(og_fasta), max_offset)
+    max_scored_nc_objects = orite.calc_score_over_region_list(phased_nc_objects, max_cgc, rotated = True)
+    return max_scored_nc_objects
+
+
+'''
+Addsa density calculation for each ncregion in a region list
+'''
+def calc_density_for_region_list(region_list):
+    new_list = []
+
+    for region in region_list:
+        region.calc_kmer_density()
+        new_list.append(region)
+    return new_list
+
+
+'''
+self explanitory
+'''
+def filter_out_empty_kmer_key_in_region_list(region_list):
+
+    new_list = []
+
+    for region in region_list:
+        region.filter_out_empty_kmer_lists_in_kmer_dict()
+        new_list.append(region)
+    return new_list
+
+
+'''
+Sortednc kmers in a region list.
+NOTE: The objects are notsorted in the region list
+'''
+
+def sort_region_list_on_density(region_list):
+
+    new_list = []
+
+    for region in region_list:
+        region.sort_kmer_info_by_density()
+        new_list.append(region)
+    return new_list
+
+
+'''
+Removes kmer rows for each region in a region_List
+'''
+
+def remove_overlapping_kmers_from_region_list(region_list):
+
+    new_list = []
+
+    for region in region_list:
+        region.remove_kmer_overlap()
+        new_list.append(region)
     return new_list
