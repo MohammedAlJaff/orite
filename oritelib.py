@@ -71,10 +71,9 @@ def max_rotate_seq_and_skew_calc(f, window_radius = 50000):
 
     initial_pos_index = list(range(len(f)))
 
-
     # Inital gc skew calc on original unrotaed sequence and find
     # position at max CG skew value.
-    gc, cgc = orite.gc_skew_sliding_window(f, window_rad=window_radius)
+    gc, cgc = gc_skew_sliding_window(f, window_rad=window_radius)
     max_indx = np.argmax(gc)
     print('inital max gc skew indx', max_indx)
 
@@ -85,7 +84,7 @@ def max_rotate_seq_and_skew_calc(f, window_radius = 50000):
 
 
     # Calc cg-skew for rotated sequence and find position at max cumilative CG skew value.
-    new_gc, new_cgc = orite.gc_skew_sliding_window(new, window_rad=window_radius)
+    new_gc, new_cgc = gc_skew_sliding_window(new, window_rad=window_radius)
     cGC_max_indx = np.argmax(new_cgc)
     print('max cgc skew indx', cGC_max_indx)
 
@@ -95,13 +94,13 @@ def max_rotate_seq_and_skew_calc(f, window_radius = 50000):
     final_pos_index = new_pos_index[cGC_max_indx:]+new_pos_index[0:cGC_max_indx]
 
 
-    final_gc, final_cgc = orite.gc_skew_sliding_window(final, window_rad=window_radius)
+    final_gc, final_cgc = gc_skew_sliding_window(final, window_rad=window_radius)
 
 
     # Return sequence rotated to max
     max_rotated_fasta = final
 
-    max_cCG_indx_original_offset = (max_indx + cGC_max_indx)% len(fasta)
+    max_cCG_indx_original_offset = (max_indx + cGC_max_indx)% len(f)
 
     return final_gc, final_cgc, max_rotated_fasta, max_cCG_indx_original_offset
 
