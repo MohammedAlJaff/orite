@@ -1,0 +1,36 @@
+Kmer approach
+
+    - Kmer_Instance mismatch scan
+        Adresses the issue of having a potential mismatch regionn
+        region to scan could be from min to max pos plus and minus the largest difference between two consequtive positions....
+
+        Deals with 'Klumpa ihop kmers för och ta hänsyn till mismatches'
+
+    - Plota för olika kmer storlekar
+
+
+SKEW approach
+
+    - Incorporate other valuable skew meausres.
+        issue here is how to  merge / balnce the two measure with each other
+        - Consecutive  sorting and filtering?
+        - A mixture measure?
+
+    - Use info / difference between different window radius sizes
+
+    - Sum different regions
+
+Genbank approach
+
+
+-
+
+
+Variation graph toolkit improves read mapping by
+representing genetic variation in the reference
+JC questions
+
+
+
+
+Presentation qa:

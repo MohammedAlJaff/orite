@@ -388,26 +388,75 @@ class NC_region:
             self.kmer_info[key] = calc_kmer_density(value)
 
     def add_max_relative_pos(self, max_offset, whole_genome_length):
-        self.max_relative_start = (self.start - max_offset)%whole_genome_length
-        self.max_relative_stop = (self.stop - max_offset)%whole_genome_length
+        if self.start >= max_offset:
+            self.max_relative_start = self.start - max_offset
+            self.max_relative_stop = self.stop - max_offset
+        else:
+            self.max_relative_start = whole_genome_length - (max_offset - self.start)
+            self.max_relative_stop = whole_genome_length - (max_offset - self.stop)
+
+    def filter_out_empty_kmer_lists_in_kmer_dict(self):
+
+        new_dict = {}
+
+        for key, value in self.kmer_info.items():
+            if len(value) != 0:
+                new_dict.update({key:value})
+
+        self.kmer_info = new_dict
 
 
 
+    def sort_kmer_info_by_density(self):
 
+        new_dict = {}
+        for key, value in self.kmer_info.items():
 
+            value.sort(key= lambda x:x[2], reverse=True)
 
+            new_dict.update({key:value})
 
+        self.kmer_info = new_dict
+
+    def remove_kmer_overlap(self):
+        new_dict = {}
+        for key, value in self.kmer_info.items():
+            new_value = []
+            for list in value:
+                overlap = False
+                for i in range(1,len(list[1])-1):
+                    if (list[1][i+1] - list[1][i]) < key:
+                        overlap = True
+                        break
+
+                if not overlap:
+                    new_tuple = (list[0],list[1],list[2])
+                    new_value.append(new_tuple)
+            new_dict.update({key:new_value})
+        self.kmer_info = new_dict
 '''
 Function that assigns a cgc VALUE BASED SCORE TO A REGION
 '''
 
-def calc_score_for_NC_region(cgc_curve, nc_obj):
-    inter = list(range(nc_obj.start, nc_obj.stop+1))
-    region_cgc_vals = cgc_curve[inter]
+def calc_score_for_NC_region(cgc_curve, nc_obj, rotated = False):
 
-    score= -np.average(region_cgc_vals)
+    if rotated:
+        inter = list(range(nc_obj.max_relative_start, nc_obj.max_relative_stop+1))
+        region_cgc_vals = cgc_curve[inter]
 
-    nc_obj.add_cgc_val(score)
+        score= -np.average(region_cgc_vals)
+
+        nc_obj.add_cgc_val(score)
+    else:
+        inter = list(range(nc_obj.start, nc_obj.stop+1))
+        region_cgc_vals = cgc_curve[inter]
+
+        score= -np.average(region_cgc_vals)
+
+        nc_obj.add_cgc_val(score)
+
+
+
 
 
 
@@ -597,6 +646,9 @@ def interval_list_to_position_set(interval_list):
         pos_set.update(interval_range)
 
     return pos_set
+
+
+
 
 #-------------------------
 
@@ -808,15 +860,34 @@ Input: a list of non-coding intervals
 Output: a list of the objects form NC_region class, containing sequence and cgc values
 '''
 
-def nc_intervals_to_nc_objects(nc_intervals, seq, cgc):
+def nc_intervals_to_nc_objects(nc_intervals, og_seq):
     nc_objcts = []
     for i in range(len(nc_intervals)):
-        nc_obj = orite.NC_region(nc_intervals[i][0], nc_intervals[i][1])
-        orite.add_sequence_to_region(seq, nc_obj)
-        orite.calc_score_for_NC_region(cgc, nc_obj)
+        nc_obj = NC_region(nc_intervals[i][0], nc_intervals[i][1])
+        add_sequence_to_region(og_seq, nc_obj)
+        #orite.calc_score_for_NC_region(cgc, nc_obj)
         nc_objcts.append(nc_obj)
     return nc_objcts
 
+
+
+
+
+'''
+'''
+def calc_score_over_region_list(region_list, curve, rotated):
+    new_list = []
+    for region in region_list:
+        calc_score_for_NC_region(curve, region, rotated)
+        new_list.append(region)
+    return new_list
+
+
+
+
+
+'''
+'''
 
 def get_kmers_from_region_list(region_list, k_array):
     new_list = []
@@ -826,7 +897,8 @@ def get_kmers_from_region_list(region_list, k_array):
         new_list.append(region)
     return new_list
 
-
+'''
+'''
 def filter_region_list_by_kmer_occurence(region_list, n):
     new_list = []
     for region in region_list:
@@ -834,7 +906,8 @@ def filter_region_list_by_kmer_occurence(region_list, n):
         new_list.append(region)
     return new_list
 
-
+'''
+'''
 def has_empty_kmer_info(nc_region):
 
     for key, value in nc_region.kmer_info.items():
@@ -843,7 +916,8 @@ def has_empty_kmer_info(nc_region):
 
     return True
 
-
+'''
+'''
 def filter_empty_kmer_regions(region_list):
     new_list = []
 
@@ -853,16 +927,22 @@ def filter_empty_kmer_regions(region_list):
     return new_list
 
 
-
-def plot_region_list(region_list, curve):
+'''
+'''
+def plot_region_list(region_list, curve, rotated = False):
 
     region_intervals = []
 
-    for region in region_list:
-        this_interval = (region.start, region.stop)
-        region_intervals.append(this_interval)
+    if rotated:
+        for region in region_list:
+            this_interval = (region.max_relative_start, region.max_relative_stop)
+            region_intervals.append(this_interval)
+    else:
+        for region in region_list:
+            this_interval = (region.start, region.stop)
+            region_intervals.append(this_interval)
 
-    regions_pos_set = orite.interval_list_to_position_set(region_intervals)
+    regions_pos_set = interval_list_to_position_set(region_intervals)
     region_pos_list = list(regions_pos_set)
     region_pos_list.sort()
 
@@ -876,6 +956,10 @@ def plot_region_list(region_list, curve):
     plt.plot(relevant_pos_list, relevant_curve_point, 'x')
     plt.title(str(len(region_list)))
 
+
+
+'''
+'''
 def print_region_list_kmer_info(region_list):
     i = 0
     for region in region_list:
@@ -893,10 +977,88 @@ def print_region_list_kmer_info(region_list):
 def add_max_relative_position(region_list, genome_length, max_offset):
     new_list = []
     for region in region_list:
-        add_max_relative_position(region, max_offset, genome_length)
+        region.add_max_relative_pos(max_offset, genome_length)
         new_list.append(region)
 
     return new_list
+
+
+'''
+Incorporates the relative positions of each nc region
+from max rotated fasta
+
+input:
+    1 - NC-INTERVALS LIST. list with interval touples specifing
+
+'''
+def get_phased_nc_region_list(nc_intervals, og_fasta, max_offset, max_cgc):
+
+    # Create and get the region_list
+    nc_objects = orite.nc_intervals_to_nc_objects(nc_intervals, og_fasta)
+
+    # Add the max_rotated positions to the regoin leists
+    phased_nc_objects = orite.add_max_relative_position(nc_objects, len(og_fasta), max_offset)
+
+
+    max_scored_nc_objects = orite.calc_score_over_region_list(phased_nc_objects, max_cgc, rotated = True)
+
+
+    return max_scored_nc_objects
+
+
+'''
+Addsa density calculation for each ncregion in a region list
+'''
+def calc_density_for_region_list(region_list):
+    new_list = []
+
+    for region in region_list:
+        region.calc_kmer_density()
+        new_list.append(region)
+    return new_list
+
+
+'''
+self explanitory
+'''
+def filter_out_empty_kmer_key_in_region_list(region_list):
+
+    new_list = []
+
+    for region in region_list:
+        region.filter_out_empty_kmer_lists_in_kmer_dict()
+        new_list.append(region)
+    return new_list
+
+
+'''
+Sortednc kmers in a region list.
+NOTE: The objects are notsorted in the region list
+'''
+
+def sort_region_list_on_density(region_list):
+
+    new_list = []
+
+    for region in region_list:
+        region.sort_kmer_info_by_density()
+        new_list.append(region)
+    return new_list
+
+
+'''
+Removes kmer rows for each region in a region_List
+'''
+
+def remove_overlapping_kmers_from_region_list(region_list):
+
+    new_list = []
+
+    for region in region_list:
+        region.remove_kmer_overlap()
+        new_list.append(region)
+    return new_list
+
 
 
 
