@@ -873,7 +873,8 @@ def nc_intervals_to_nc_objects(nc_intervals, og_seq):
 
 
 
-
+'''
+'''
 def calc_score_over_region_list(region_list, curve, rotated):
     new_list = []
     for region in region_list:
@@ -885,7 +886,8 @@ def calc_score_over_region_list(region_list, curve, rotated):
 
 
 
-
+'''
+'''
 
 def get_kmers_from_region_list(region_list, k_array):
     new_list = []
@@ -895,7 +897,8 @@ def get_kmers_from_region_list(region_list, k_array):
         new_list.append(region)
     return new_list
 
-
+'''
+'''
 def filter_region_list_by_kmer_occurence(region_list, n):
     new_list = []
     for region in region_list:
@@ -903,7 +906,8 @@ def filter_region_list_by_kmer_occurence(region_list, n):
         new_list.append(region)
     return new_list
 
-
+'''
+'''
 def has_empty_kmer_info(nc_region):
 
     for key, value in nc_region.kmer_info.items():
@@ -912,7 +916,8 @@ def has_empty_kmer_info(nc_region):
 
     return True
 
-
+'''
+'''
 def filter_empty_kmer_regions(region_list):
     new_list = []
 
@@ -922,7 +927,8 @@ def filter_empty_kmer_regions(region_list):
     return new_list
 
 
-
+'''
+'''
 def plot_region_list(region_list, curve, rotated = False):
 
     region_intervals = []
@@ -950,6 +956,10 @@ def plot_region_list(region_list, curve, rotated = False):
     plt.plot(relevant_pos_list, relevant_curve_point, 'x')
     plt.title(str(len(region_list)))
 
+
+
+'''
+'''
 def print_region_list_kmer_info(region_list):
     i = 0
     for region in region_list:
@@ -977,11 +987,22 @@ def add_max_relative_position(region_list, genome_length, max_offset):
 Incorporates the relative positions of each nc region
 from max rotated fasta
 
+input:
+    1 - NC-INTERVALS LIST. list with interval touples specifing
+
 '''
 def get_phased_nc_region_list(nc_intervals, og_fasta, max_offset, max_cgc):
+
+    # Create and get the region_list
     nc_objects = orite.nc_intervals_to_nc_objects(nc_intervals, og_fasta)
+
+    # Add the max_rotated positions to the regoin leists
     phased_nc_objects = orite.add_max_relative_position(nc_objects, len(og_fasta), max_offset)
+
+
     max_scored_nc_objects = orite.calc_score_over_region_list(phased_nc_objects, max_cgc, rotated = True)
+
+
     return max_scored_nc_objects
 
 

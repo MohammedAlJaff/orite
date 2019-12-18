@@ -1,0 +1,53 @@
+
+
+---------------------------------------------------------------
+1. Load fasta file into a seq variable with
+
+    seq = seq_from_fasta('file_path.fasta')
+
+
+2. Max rotate the sequence seq to get its corresponding cg and cgc curve as well as t
+
+    max_things = max_rotate_seq_and_skew_calc(seq, window_radius)
+
+    max_cg = max_things[0]
+    max_cgc = max_things[1]
+    max_fasta = max_things[2]
+    max_offset = max_things[3]
+
+
+
+
+
+2'. Compute the z-curve components for the max rotated sequence
+
+
+
+
+3. Extract non coding region information from genbank file.
+
+    g = genbank_to_non_coding_intervals('genbank_path.gb')
+
+    true_nc_intervals = g[0] # - List of touples
+    true_nc_positions = g[1] # - all NC positions in an arrays
+    non_coding_plus = g[2] # - nc regions interval touple list
+    non_coding_neg  = g[] # - nc regions interval touple list
+
+
+4.
+
+
+
+
+
+
+
+
+
+ad
+
+a
+sd
+
+
+at_skew_sliding_window
