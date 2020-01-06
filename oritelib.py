@@ -549,36 +549,6 @@ def calc_kmer_density(kmer_list):
 
 
 
-'''
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-FUNCTIONS THAT OPERATE ON A REGION_LISTS
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-'''
-
-'''
-Filters a regions_list by length
-'''
-
-def filter_regions_by_length(regions_list, length):
-    new_region_list = []
-
-    for region in regions_list:
-        if region.length > length:
-            new_region_list.append(region)
-    return new_region_list
-
-
-
-'''
-Sorts a regions_list by each region objects score attribute.
-NOTE:
-THIS FUNCTION OPERATES ON THE INPUTED region_list itself.
-It doesnt return anything.
-'''
-def sort_regions_by_score(regions_list):
-    regions_list.sort(key=lambda x: x.cgc_val, reverse = True)
-    #regions_list.sort(reversed = True)
-
 
 
 
@@ -851,9 +821,20 @@ def extract_seq_from_non_coding_intervals(non_coding_intervals, seq):
 
     return non_coding_seqs
 
-'''
+
+
+
 
 '''
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+FUNCTIONS THAT OPERATE ON A REGION_LISTS
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+'''
+
+
+
+
+
 
 '''
 Input: a list of non-coding intervals
@@ -873,6 +854,10 @@ def nc_intervals_to_nc_objects(nc_intervals, og_seq):
 
 
 
+
+
+
+
 '''
 '''
 def calc_score_over_region_list(region_list, curve, rotated):
@@ -885,11 +870,38 @@ def calc_score_over_region_list(region_list, curve, rotated):
 
 
 
+'''
+Filters a regions_list by length
+'''
+
+def filter_regions_by_length(regions_list, length):
+    new_region_list = []
+
+    for region in regions_list:
+        if region.length > length:
+            new_region_list.append(region)
+    return new_region_list
+
+
+
+'''
+Sorts a regions_list by each region objects score attribute.
+NOTE:
+THIS FUNCTION OPERATES ON THE INPUTED region_list itself.
+It doesnt return anything.
+'''
+def sort_regions_by_score(regions_list):
+    regions_list.sort(key=lambda x: x.cgc_val, reverse = True)
+    #regions_list.sort(reversed = True)
+
+
+
+
 
 '''
 '''
 
-def get_kmers_from_region_list(region_list, k_array):
+def calc_kmers_from_region_list(region_list, k_array):
     new_list = []
     for region in region_list:
         for k in k_array:
@@ -904,7 +916,12 @@ def filter_region_list_by_kmer_occurence(region_list, n):
     for region in region_list:
         region.filter_kmer_by_occurence(n)
         new_list.append(region)
-    return new_list
+
+    # take our all regions with "empty" kmer_info
+    new_new_list = filter_empty_kmer_regions(new_list)
+
+    final_list = filter_out_empty_kmer_key_in_region_list(new_new_list)
+    return final_list
 
 '''
 '''
@@ -991,16 +1008,16 @@ input:
     1 - NC-INTERVALS LIST. list with interval touples specifing
 
 '''
-def get_phased_nc_region_list(nc_intervals, og_fasta, max_offset, max_cgc):
+def get_phased_nc_region_list(nc_intervals, og_fasta, max_offset, score_curve):
 
     # Create and get the region_list
-    nc_objects = orite.nc_intervals_to_nc_objects(nc_intervals, og_fasta)
+    nc_objects = nc_intervals_to_nc_objects(nc_intervals, og_fasta)
 
     # Add the max_rotated positions to the regoin leists
-    phased_nc_objects = orite.add_max_relative_position(nc_objects, len(og_fasta), max_offset)
+    phased_nc_objects = add_max_relative_position(nc_objects, len(og_fasta), max_offset)
 
 
-    max_scored_nc_objects = orite.calc_score_over_region_list(phased_nc_objects, max_cgc, rotated = True)
+    max_scored_nc_objects = calc_score_over_region_list(phased_nc_objects, score_curve, rotated = True)
 
 
     return max_scored_nc_objects
@@ -1090,10 +1107,7 @@ def calc_z_curve(seq):
         zn = (an+tn) - (cn+gn)
 
 
-    return xn, yn,
-
-
-
+    return xn, yn, zn
 
 
 '''
