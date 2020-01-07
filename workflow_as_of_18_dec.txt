@@ -6,6 +6,11 @@
     seq = seq_from_fasta('file_path.fasta')
 
 
+
+
+
+----------------------------- CONSISTENT CGC ROTATION STEP -----------------------------------
+
 2. Max rotate the sequence seq to get its corresponding cg and cgc curve as well as t
 
     max_things = max_rotate_seq_and_skew_calc(seq, window_radius)
@@ -16,6 +21,8 @@
     max_offset = max_things[3]
 
 
+
+--------------------------------- SCORE CURVE STEP -----------------------------------------
 
 2'. Compute the z-curve components for the max rotated sequence
 
@@ -33,12 +40,10 @@
 
 
 4. Construct score curve by some combination of scaled skews from 3
-
-    ...
-    ..
-    .
+    score_curve = scale_skew(cdc_scaled - KM_scaled)
 
 
+-------------------------------- GENEBANK / NONKODING REGIONS DATA EXTRACTION -----------------------------------------------------
 
 5. Extract non coding region information from genbank file.
 
@@ -51,33 +56,33 @@
 
 
 6. From true non coding inervals obtain a region_list of nc_regions
-for the score input the score curve
+for the score input the score curve (RECALL - SCORE CURVE WAS CONSTRUCTED ABOVE FROM THE CGC AND KM CURVES...)
 
     all_nc_regions = get_phased_nc_region_list(true_nc_intervals, og_fasta, max_offset, score_curve):
 
+    (THIS IS A LIST OF NC_REGION OBJECTS)
 
 
 7. Calculate kmer info for all regions for a number of kmer lengths
 
-    kmer_lengths_of_interrest = [6,7,8,9]
+    kmer_lengths_of_interrest = [  6,7,8,9]
 
     all_nc_regions = orite.calc_kmers_from_region_list(all_nc_regions, kmer_lengths_of_interrest)
+    
 
 
-
-8. Filter out non coding regions belowe a certain length l = 50
+8. Filter out non coding regions below a certain length l = 50 <- param
     long_enough_regions = orite.filter_regions_by_length(all_nc_regions, 50)
 
+ 
+9. Filter out kmer_rows with occurances less than 3 <- param 
 
-9. Filter out kmer_rows with occurances less than 3
 9'. Calculate also the densities while your at it?
 
     regions_3_and_more_occ = orite.filter_region_list_by_kmer_occurence(region_list, n)
 
 
 10. calc densities of remaining kmers
-
-
 
 
 11. Remove kmers rows wtih overlapping with itself (this isnt repeating)

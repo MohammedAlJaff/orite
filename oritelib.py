@@ -422,15 +422,15 @@ class NC_region:
         new_dict = {}
         for key, value in self.kmer_info.items():
             new_value = []
-            for list in value:
+            for listy in value:
                 overlap = False
-                for i in range(1,len(list[1])-1):
-                    if (list[1][i+1] - list[1][i]) < key:
+                for i in range(1,len(listy[1])-1):
+                    if (listy[1][i+1] - listy[1][i]) < key:
                         overlap = True
                         break
 
                 if not overlap:
-                    new_tuple = (list[0],list[1],list[2])
+                    new_tuple = (listy[0],listy[1],listy[2])
                     new_value.append(new_tuple)
             new_dict.update({key:new_value})
         self.kmer_info = new_dict
@@ -853,11 +853,6 @@ def nc_intervals_to_nc_objects(nc_intervals, og_seq):
 
 
 
-
-
-
-
-
 '''
 '''
 def calc_score_over_region_list(region_list, curve, rotated):
@@ -924,6 +919,8 @@ def filter_region_list_by_kmer_occurence(region_list, n):
     return final_list
 
 '''
+This operates on a single nc-region object. 
+returns true of the kmer 
 '''
 def has_empty_kmer_info(nc_region):
 
@@ -934,6 +931,9 @@ def has_empty_kmer_info(nc_region):
     return True
 
 '''
+Filters out / removes regions that have a completly empty kmer info content. 
+Bascaially, if all keys have a zero size value  
+then this regions gets removed. 
 '''
 def filter_empty_kmer_regions(region_list):
     new_list = []
@@ -985,11 +985,14 @@ def print_region_list_kmer_info(region_list):
         for key, value in region.kmer_info.items():
             print('\tk=', key,)
             for thing in value:
-                print('\t', thing[0], ' - ', thing[1])
+                print('\t', thing[0], ' - ', thing[1], ' - ', 'density:', thing[2]) 
 
         print('\t-------')
 
         i = i+1
+
+
+
 
 def add_max_relative_position(region_list, genome_length, max_offset):
     new_list = []
@@ -1120,3 +1123,37 @@ output:
 
 def scale_skew(curve, default_range=(-1,1)):
     return minmax_scale(X=curve, feature_range=default_range)
+
+
+
+
+
+
+
+
+# WHOLE KMER FILTERING AND SORTING FUNCITON. 
+# BEGINING WITH A ALL_NC_REGIONS LIST THAT HASNT HAD ITS KMERS COMPUTEDED. 
+
+def prcoess_all_nc_regions_list(all_nc_regions, kmer_lengths_of_interest, region_length_threshold=50, occurance_threshold=3):
+    # Filter based on region length threshold. Default is 50 base
+    long_enough_regions = filter_regions_by_length(all_nc_regions, region_length_threshold)
+    
+    # Compute kmers info 
+    x0 = calc_kmers_from_region_list(long_enough_regions, kmer_lengths_of_interest)
+
+    # Filter out kmers rows in each nc_objects kmer_info field based on occurances 
+    regions_3_and_more_occ = filter_region_list_by_kmer_occurence(x0, occurance_threshold)
+
+    # Compute densities for each kmer row of each nc_region
+    regions_3_and_more_occ_with_density = calc_density_for_region_list(regions_3_and_more_occ)
+
+    # Remove regions containing overlapping repeats 
+    regions_without_overlapping_repaets = remove_overlapping_kmers_from_region_list(regions_3_and_more_occ_with_density)
+
+    # Some regions might have only contained kmer rows with overlapping regions. 
+    # Therefore we need to remove once more empty kmers. 
+
+    x1 = filter_empty_kmer_regions(regions_without_overlapping_repaets)
+    
+    #removes kets (kmer lengths with empty values )
+    x2 = filter_out_empty_kmer_key_in_region_list(x1)
