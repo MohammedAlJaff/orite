@@ -35,9 +35,13 @@ def seq_from_fasta(file_path):
 
     return sequence
 
+
+
 #:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# ----- FUNCTIONS THAT EXTRACT FASTA FILE DATA: END -----
+# ----- FUNCTIONS THAT EXTRACT GENEBANK  DATA
 #:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
 
 
 
@@ -105,7 +109,7 @@ def max_rotate_seq_and_skew_calc(f, window_radius = 50000):
 
     return final_gc, final_cgc, max_rotated_fasta, max_cCG_indx_original_offset
 
-#-------------------------
+
 
 
 
@@ -148,6 +152,15 @@ def cumilative_base_count(seq):
     return cum_base_array
 
 #-------------------------
+
+
+'''
+Return a cumilative skew array from the output of cumilative_base_count(seq):
+'''
+def cumilative_skew(base_skew_array):
+    return np.cumsum(base_skew_array)
+
+
 
 '''
 
@@ -194,147 +207,53 @@ def gc_skew_sliding_window(seq, window_rad=500):
 
     return gc_vals, c_gc_vals
 
-#-------------------------
-
-'''
-'''
-
-def at_skew_sliding_window(seq, window_rad=500):
-
-    seq_length = len(seq)
-
-    if window_rad > seq_length:
-        raise Exception('ERROR - Window size is larger than sequence length')
-
-
-    extetend_seq =  seq[seq_length-window_rad:] + seq + seq[0:window_rad]
-    extetend_seq_length = len(extetend_seq)
-
-    c_b_c = cumilative_base_count(extetend_seq)
-
-    print('seq len: ', seq_length)
-    print('window_rad: ', window_rad)
-    print('extended seq length: ', extetend_seq_length)
-
-
-    gc_vals = np.zeros([seq_length])
-
-    for i in range(window_rad, window_rad+seq_length):
-
-        #print(i)
-        left_indx = (i-window_rad)
-        right_indx = (i+window_rad)
-
-        n_c_in_window = (c_b_c[0,right_indx] - c_b_c[0, left_indx])
-        n_g_in_window = (c_b_c[3,right_indx] - c_b_c[3, left_indx])
-
-        if (n_g_in_window+n_c_in_window == 0):
-            print('opps at: ', i)
-
-        gc_skew = (n_g_in_window-n_c_in_window)/(n_g_in_window+n_c_in_window)
-        gc_vals[i-window_rad] = gc_skew
-
-    c_gc_vals = cumilative_skew(gc_vals)
-
-    return gc_vals, c_gc_vals
-
-
-
-
-#-------------------------
-
-'''
-
-return a cumilative skew array
-'''
-def cumilative_skew(base_skew_array):
-    return np.cumsum(base_skew_array)
-
-# ----------------
 
 
 '''
-return: a smoothed version of input array
+Z-curve calculation of a genome sequence sequence
 
-Note:
-smoothing param is dependent on resolution.
-ndi.gaussian_filter1d(cGCsk, sigma=110)'''
-
-def smooth_curve(raw_curve, smoothing_param=60):
-
-    smoothed_curve = ndimage.gaussian_filter1d(raw_curve, sigma=smoothing_param)
-
-    return smoothed_curve
-
+input: A sequence string of a genome
+output: The xn, yn, and zn components of the Z curve of the genome.
 '''
-UNUSED AS OF 5TH DEC
+def calc_z_curve(seq):
 
-Function: Returns the sum of the squared distances for each element in the arrays. Arrays must be of same length
-x: numpy array
-y: numpy array
-'''
-def sum_of_squared_distances(x, y):
-    return np.sum((x-y)*(x-y))
+    if type(seq[0]) != str :
+        raise Exception('Must input a valid strng sequence')
 
-
-'''
-UNUSED AS OF 5TH DEC
-
-Returns the value of the linear function with paramters k (slope), m (intersect) over the specified position.
-k: double, float.
-m: double, float.
-pos: Numpy array.
-'''
-def line_array(k,m,pos):
-    y = k*pos + m
-    return y
-
-'''
-sequence: string of genome sequence
-kmer_length: int on how long kmers to look for
-circular: Boolean, True by default. Use False if genome is not circular or if a subsequence is used
-
-Output: A list of tuples. First element in tuple represents the kmer (String), the other elelment is a list. The first element in the list
-represents how many occurences there are of the kmer in the investigated sequence. The following indices store the
-positions on which the first base in the kmer is located on the sequence. The tuple are based in descending order
-by how many occurences there are of the kmer in the sequence.
-'''
-def get_kmers(sequence, kmer_length, circular = True):
-    kmer = ""
-    kmer_dict = {}
-    sequence_length = len(sequence)
-
-    if circular:
-        sequence = sequence + sequence[0:kmer_length-1]
-
-        for i in range(sequence_length):
-            kmer = sequence[i:(i+kmer_length)]
-
-            if kmer in kmer_dict:
-                value_list = kmer_dict[kmer]
-                value_list[0] = value_list[0]+1
-                value_list.append(i)
-                kmer_dict[kmer] = value_list
-
-            else:
-                kmer_dict.update({kmer: [1,i]})
     else:
-        for i in range(sequence_length-(kmer_length-1)):
-            kmer = sequence[i:(i+kmer_length)]
+        # Acumilative base counts across genome
+        cum_base_count = cumilative_base_count(seq)
 
-            if kmer in kmer_dict:
-                value_list = kmer_dict[kmer]
-                value_list[0] = value_list[0]+1
-                value_list.append(i)
-                kmer_dict[kmer] = value_list
+        an = cum_base_count[0,:]
+        cn = cum_base_count[1,:]
+        gn = cum_base_count[2,:]
+        tn = cum_base_count[3,:]
 
-            else:
-                kmer_dict.update({kmer: [1,i]})
+        # z-curve component calculations
+        xn = (an+gn) - (cn+tn) #RY
+        yn = (an+cn) - (gn+tn) # MK
+        zn = (an+tn) - (cn+gn)
 
-    kmer_dict = sorted(kmer_dict.items(), key =
-             lambda kv:(kv[1], kv[0]), reverse = True)
 
-    return kmer_dict
+    return xn, yn, zn
+
+
+
+
+'''
+Scales a cruve so that lowest point is at -1 and largest value is +1 by default
+
+Input: curve (numpy array)
+Output:
+'''
+
+def scale_skew(curve, default_range=(-1,1)):
+    return minmax_scale(X=curve, feature_range=default_range)
+
+
+
+
+
 
 
 
@@ -346,7 +265,6 @@ def get_kmers(sequence, kmer_length, circular = True):
 NON CODING REGIONS CLASS: START
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 '''
-
 
 '''
 Class: Non coding region object.
@@ -422,18 +340,22 @@ class NC_region:
         new_dict = {}
         for key, value in self.kmer_info.items():
             new_value = []
-            for list in value:
+            for listy in value:
                 overlap = False
-                for i in range(1,len(list[1])-1):
-                    if (list[1][i+1] - list[1][i]) < key:
+                for i in range(1,len(listy[1])-1):
+                    if (listy[1][i+1] - listy[1][i]) < key:
                         overlap = True
                         break
 
                 if not overlap:
-                    new_tuple = (list[0],list[1],list[2])
+                    new_tuple = (listy[0],listy[1],listy[2])
                     new_value.append(new_tuple)
             new_dict.update({key:new_value})
         self.kmer_info = new_dict
+
+
+
+
 '''
 Function that assigns a cgc VALUE BASED SCORE TO A REGION
 '''
@@ -549,35 +471,8 @@ def calc_kmer_density(kmer_list):
 
 
 
-'''
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-FUNCTIONS THAT OPERATE ON A REGION_LISTS
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-'''
-
-'''
-Filters a regions_list by length
-'''
-
-def filter_regions_by_length(regions_list, length):
-    new_region_list = []
-
-    for region in regions_list:
-        if region.length > length:
-            new_region_list.append(region)
-    return new_region_list
 
 
-
-'''
-Sorts a regions_list by each region objects score attribute.
-NOTE:
-THIS FUNCTION OPERATES ON THE INPUTED region_list itself.
-It doesnt return anything.
-'''
-def sort_regions_by_score(regions_list):
-    regions_list.sort(key=lambda x: x.cgc_val, reverse = True)
-    #regions_list.sort(reversed = True)
 
 
 
@@ -603,6 +498,8 @@ The function utilizes various other functions contained in oritelib.
 '''
 
 def genbank_to_non_coding_intervals(file_path):
+    
+    
     length = get_length_genbank(file_path)
     raw_p = raw_positions_strings_from_genbank(file_path)
 
@@ -670,9 +567,9 @@ def get_true_nc_positions(nc_plus_intervals, nc_neg_intervals):
 
 
 '''
-
 Input: list of all non-coding positions.
-Output: List of tuples with non-coding intervals'''
+Output: List of tuples with non-coding intervals
+'''
 
 def position_list_to_intervals(pos_list):
 
@@ -707,10 +604,8 @@ def position_list_to_intervals(pos_list):
 
     return crap_bag
 
-#-------------------------
 
 
-#-------------------------
 '''
 Input: List of tuples with non-coding intervals
 Output: list of range of each non-coding interval
@@ -851,9 +746,20 @@ def extract_seq_from_non_coding_intervals(non_coding_intervals, seq):
 
     return non_coding_seqs
 
-'''
+
+
+
 
 '''
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+FUNCTIONS THAT OPERATE ON A REGION_LISTS
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+'''
+
+
+
+
+
 
 '''
 Input: a list of non-coding intervals
@@ -872,7 +778,6 @@ def nc_intervals_to_nc_objects(nc_intervals, og_seq):
 
 
 
-
 '''
 '''
 def calc_score_over_region_list(region_list, curve, rotated):
@@ -885,17 +790,48 @@ def calc_score_over_region_list(region_list, curve, rotated):
 
 
 
+'''
+Filters a regions_list by length
+'''
+
+def filter_regions_by_length(regions_list, length):
+    new_region_list = []
+
+    for region in regions_list:
+        if region.length > length:
+            new_region_list.append(region)
+    return new_region_list
+
+
+
+'''
+Sorts a regions_list by each region objects score attribute.
+NOTE:
+THIS FUNCTION OPERATES ON THE INPUTED region_list itself.
+It doesnt return anything.
+'''
+def sort_regions_by_score(regions_list):
+    regions_list.sort(key=lambda x: x.cgc_val, reverse = True)
+    #regions_list.sort(reversed = True)
+
+
+
 
 '''
 '''
 
-def get_kmers_from_region_list(region_list, k_array):
+def calc_kmers_from_region_list(region_list, k_array):
     new_list = []
     for region in region_list:
         for k in k_array:
             region.add_kmer_counts(k)
         new_list.append(region)
     return new_list
+
+
+
+
+
 
 '''
 '''
@@ -904,9 +840,16 @@ def filter_region_list_by_kmer_occurence(region_list, n):
     for region in region_list:
         region.filter_kmer_by_occurence(n)
         new_list.append(region)
-    return new_list
+
+    # take our all regions with "empty" kmer_info
+    new_new_list = filter_empty_kmer_regions(new_list)
+
+    final_list = filter_out_empty_kmer_key_in_region_list(new_new_list)
+    return final_list
 
 '''
+This operates on a single nc-region object. 
+returns true of the kmer 
 '''
 def has_empty_kmer_info(nc_region):
 
@@ -917,6 +860,9 @@ def has_empty_kmer_info(nc_region):
     return True
 
 '''
+Filters out / removes regions that have a completly empty kmer info content. 
+Bascaially, if all keys have a zero size value  
+then this regions gets removed. 
 '''
 def filter_empty_kmer_regions(region_list):
     new_list = []
@@ -925,6 +871,9 @@ def filter_empty_kmer_regions(region_list):
         if not has_empty_kmer_info(region):
             new_list.append(region)
     return new_list
+
+
+
 
 
 '''
@@ -958,6 +907,8 @@ def plot_region_list(region_list, curve, rotated = False):
 
 
 
+
+
 '''
 '''
 def print_region_list_kmer_info(region_list):
@@ -968,11 +919,14 @@ def print_region_list_kmer_info(region_list):
         for key, value in region.kmer_info.items():
             print('\tk=', key,)
             for thing in value:
-                print('\t', thing[0], ' - ', thing[1])
+                print('\t', thing[0], ' - ', thing[1], ' - ', 'density:', thing[2]) 
 
         print('\t-------')
 
         i = i+1
+
+
+
 
 def add_max_relative_position(region_list, genome_length, max_offset):
     new_list = []
@@ -991,16 +945,16 @@ input:
     1 - NC-INTERVALS LIST. list with interval touples specifing
 
 '''
-def get_phased_nc_region_list(nc_intervals, og_fasta, max_offset, max_cgc):
+def get_phased_nc_region_list(nc_intervals, og_fasta, max_offset, score_curve):
 
     # Create and get the region_list
-    nc_objects = orite.nc_intervals_to_nc_objects(nc_intervals, og_fasta)
+    nc_objects = nc_intervals_to_nc_objects(nc_intervals, og_fasta)
 
     # Add the max_rotated positions to the regoin leists
-    phased_nc_objects = orite.add_max_relative_position(nc_objects, len(og_fasta), max_offset)
+    phased_nc_objects = add_max_relative_position(nc_objects, len(og_fasta), max_offset)
 
 
-    max_scored_nc_objects = orite.calc_score_over_region_list(phased_nc_objects, max_cgc, rotated = True)
+    max_scored_nc_objects = calc_score_over_region_list(phased_nc_objects, score_curve, rotated = True)
 
 
     return max_scored_nc_objects
@@ -1063,46 +1017,198 @@ def remove_overlapping_kmers_from_region_list(region_list):
 
 
 
+
 '''
-Z-curve calculation of a genome sequence sequence
-
-input: A sequence string of a genome
-
-output: The xn, yn, and zn components of the Z curve of the genome.
+sequence: string of genome sequence
+kmer_length: int on how long kmers to look for
+circular: Boolean, True by default. Use False if genome is not circular or if a subsequence is used
+Output: A list of tuples. First element in tuple represents the kmer (String), the other elelment is a list. The first element in the list
+represents how many occurences there are of the kmer in the investigated sequence. The following indices store the
+positions on which the first base in the kmer is located on the sequence. The tuple are based in descending order
+by how many occurences there are of the kmer in the sequence.
 '''
-def calc_z_curve(seq):
+def get_kmers(sequence, kmer_length, circular = True):
+    kmer = ""
+    kmer_dict = {}
+    sequence_length = len(sequence)
 
-    if type(seq[0]) != str :
-        raise Exception('Must input a valid strng sequence')
+    if circular:
+        sequence = sequence + sequence[0:kmer_length-1]
 
+        for i in range(sequence_length):
+            kmer = sequence[i:(i+kmer_length)]
+
+            if kmer in kmer_dict:
+                value_list = kmer_dict[kmer]
+                value_list[0] = value_list[0]+1
+                value_list.append(i)
+                kmer_dict[kmer] = value_list
+
+            else:
+                kmer_dict.update({kmer: [1,i]})
     else:
-        # Acumilative base counts across genome
-        cum_base_count = cumilative_base_count(seq)
+        for i in range(sequence_length-(kmer_length-1)):
+            kmer = sequence[i:(i+kmer_length)]
 
-        an = cum_base_count[0,:]
-        cn = cum_base_count[1,:]
-        gn = cum_base_count[2,:]
-        tn = cum_base_count[3,:]
+            if kmer in kmer_dict:
+                value_list = kmer_dict[kmer]
+                value_list[0] = value_list[0]+1
+                value_list.append(i)
+                kmer_dict[kmer] = value_list
 
-        # z-curve component calculations
-        xn = (an+gn) - (cn+tn) #RY
-        yn = (an+cn) - (gn+tn) # MK
-        zn = (an+tn) - (cn+gn)
+            else:
+                kmer_dict.update({kmer: [1,i]})
 
+    kmer_dict = sorted(kmer_dict.items(), key =
+             lambda kv:(kv[1], kv[0]), reverse = True)
 
-    return xn, yn,
-
-
-
+    return kmer_dict
 
 
-'''
-Scales a cruve so that lowest point is at -1 and largest value is +1 by default
 
-input: curve (numpy array)
-output:
 
-'''
 
-def scale_skew(curve, default_range=(-1,1)):
-    return minmax_scale(X=curve, feature_range=default_range)
+
+
+
+
+
+
+# WHOLE KMER FILTERING AND SORTING FUNCITON. 
+# BEGINING WITH A ALL_NC_REGIONS LIST THAT HASNT HAD ITS KMERS COMPUTEDED. 
+
+def prcoess_all_nc_regions_list(all_nc_regions, kmer_lengths_of_interest, region_length_threshold=50, occurance_threshold=3):
+    # Filter based on region length threshold. Default is 50 base
+    long_enough_regions = filter_regions_by_length(all_nc_regions, region_length_threshold)
+    
+    # Compute kmers info 
+    x0 = calc_kmers_from_region_list(long_enough_regions, kmer_lengths_of_interest)
+
+    # Filter out kmers rows in each nc_objects kmer_info field based on occurances 
+    regions_3_and_more_occ = filter_region_list_by_kmer_occurence(x0, occurance_threshold)
+
+    # Compute densities for each kmer row of each nc_region
+    regions_3_and_more_occ_with_density = calc_density_for_region_list(regions_3_and_more_occ)
+
+    # Remove regions containing overlapping repeats 
+    regions_without_overlapping_repaets = remove_overlapping_kmers_from_region_list(regions_3_and_more_occ_with_density)
+
+    # Some regions might have only contained kmer rows with overlapping regions. 
+    # Therefore we need to remove once more empty kmers. 
+
+    x1 = filter_empty_kmer_regions(regions_without_overlapping_repaets)
+    
+    #removes kets (kmer lengths with empty values )
+    x2 = filter_out_empty_kmer_key_in_region_list(x1)
+
+
+
+
+
+
+# note that we take the negative of the avarage score and thus the below should be flipped
+def filter_out_regions_above_score(region_list, score_thresh = -0.50):
+    
+    new_list = []
+    
+    neg_score = - score_thresh
+    
+    for region in region_list:
+        if region.cgc_val > neg_score:
+            new_list.append(region)
+    
+    return new_list 
+
+
+
+
+
+# Removes row
+def remove_kmer_rows_with_densisty_below_thresh(region, d_threshold):
+    
+    new_dict = dict()
+    
+    for k, rows_list in region.kmer_info.items():
+        new_rows = []
+        
+        for row in rows_list:
+            
+            if row[2] > d_threshold:
+                new_rows.append(row)
+                
+        new_dict.update({k:new_rows})
+
+        #print({k:new_rows})
+        
+    region.kmer_info = new_dict
+        
+        
+
+
+# WHOLE KMER FILTERING AND SORTING FUNCITON. 
+# BEGINING WITH A ALL_NC_REGIONS LIST THAT HASNT HAD ITS KMERS COMPUTEDED. 
+# Returns a list of non-coding regions objects that satisfy the parameter arguments. 
+
+def prcoess_and_filter_all_nc_regions_list(all_nc_regions, kmer_lengths_of_interest, region_length_threshold=50, occurance_threshold=3, score_thresh = -0.75, d_tresh = 0.01):
+    
+    
+    print('Filtering process\nTotal number of intial non coding regions: ', len(all_nc_regions))
+    
+    
+    # Filter based on region length threshold. Default is 50 base
+    long_enough_regions = filter_regions_by_length(all_nc_regions, region_length_threshold)
+    print('Length filtering - number of nc regions above 50 in length: ', len(long_enough_regions))
+    
+    
+    # Compute kmers info 
+    x0 = calc_kmers_from_region_list(long_enough_regions, kmer_lengths_of_interest)
+
+    # Filter out kmers rows in each nc_objects kmer_info field based on occurances 
+    regions_3_and_more_occ = filter_region_list_by_kmer_occurence(x0, occurance_threshold)
+    print('Kmer Occurence filtering - number of nc regions with kmers  having 3 or more occurances: ', len(regions_3_and_more_occ))
+
+    
+    # Compute densities for each kmer row of each nc_region
+    regions_3_and_more_occ_with_density = calc_density_for_region_list(regions_3_and_more_occ)
+
+    # Remove regions containing overlapping repeats 
+    regions_without_overlapping_repaets = remove_overlapping_kmers_from_region_list(regions_3_and_more_occ_with_density)
+
+    
+    # Some regions might have only contained kmer rows with overlapping regions. 
+    # Therefore we need to remove once more empty kmers. 
+
+    x1 = filter_empty_kmer_regions(regions_without_overlapping_repaets)
+    
+    #removes kets (kmer lengths with empty values )
+    x2 = filter_out_empty_kmer_key_in_region_list(x1)
+    print('Overlapp filtering - number of nc regions without overlapping repeats: ', len(x2))
+
+    # Keep only regions were 
+    x3 = filter_out_regions_above_score(x2, score_thresh)
+    
+    print('Number of regions with scores "below" ', score_thresh ,': ', len(x3))
+    
+        
+    x4 = sort_region_list_on_density(x3)
+    
+    # This changes the list and doesnt return anything 
+    sort_regions_by_score(x4)
+    
+    
+    ## 
+    for region in x4:
+        remove_kmer_rows_with_densisty_below_thresh(region, d_tresh)
+        
+    
+    x5 = filter_empty_kmer_regions(x4)
+    
+    #removes kets (kmer lengths with empty values )
+    x6 = filter_out_empty_kmer_key_in_region_list(x5)
+    print('Number of regions with kmer_densities above ',d_tresh,' - ',   len(x6))
+
+    
+
+    
+    print('\n---Done---')
+    return x6
