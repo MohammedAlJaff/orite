@@ -498,8 +498,8 @@ The function utilizes various other functions contained in oritelib.
 '''
 
 def genbank_to_non_coding_intervals(file_path):
-    
-    
+
+
     length = get_length_genbank(file_path)
     raw_p = raw_positions_strings_from_genbank(file_path)
 
@@ -848,8 +848,8 @@ def filter_region_list_by_kmer_occurence(region_list, n):
     return final_list
 
 '''
-This operates on a single nc-region object. 
-returns true of the kmer 
+This operates on a single nc-region object.
+returns true of the kmer
 '''
 def has_empty_kmer_info(nc_region):
 
@@ -860,9 +860,9 @@ def has_empty_kmer_info(nc_region):
     return True
 
 '''
-Filters out / removes regions that have a completly empty kmer info content. 
-Bascaially, if all keys have a zero size value  
-then this regions gets removed. 
+Filters out / removes regions that have a completly empty kmer info content.
+Bascaially, if all keys have a zero size value
+then this regions gets removed.
 '''
 def filter_empty_kmer_regions(region_list):
     new_list = []
@@ -919,7 +919,7 @@ def print_region_list_kmer_info(region_list):
         for key, value in region.kmer_info.items():
             print('\tk=', key,)
             for thing in value:
-                print('\t', thing[0], ' - ', thing[1], ' - ', 'density:', thing[2]) 
+                print('\t', thing[0], ' - ', thing[1], ' - ', 'density:', thing[2])
 
         print('\t-------')
 
@@ -1074,30 +1074,30 @@ def get_kmers(sequence, kmer_length, circular = True):
 
 
 
-# WHOLE KMER FILTERING AND SORTING FUNCITON. 
-# BEGINING WITH A ALL_NC_REGIONS LIST THAT HASNT HAD ITS KMERS COMPUTEDED. 
+# WHOLE KMER FILTERING AND SORTING FUNCITON.
+# BEGINING WITH A ALL_NC_REGIONS LIST THAT HASNT HAD ITS KMERS COMPUTEDED.
 
 def prcoess_all_nc_regions_list(all_nc_regions, kmer_lengths_of_interest, region_length_threshold=50, occurance_threshold=3):
     # Filter based on region length threshold. Default is 50 base
     long_enough_regions = filter_regions_by_length(all_nc_regions, region_length_threshold)
-    
-    # Compute kmers info 
+
+    # Compute kmers info
     x0 = calc_kmers_from_region_list(long_enough_regions, kmer_lengths_of_interest)
 
-    # Filter out kmers rows in each nc_objects kmer_info field based on occurances 
+    # Filter out kmers rows in each nc_objects kmer_info field based on occurances
     regions_3_and_more_occ = filter_region_list_by_kmer_occurence(x0, occurance_threshold)
 
     # Compute densities for each kmer row of each nc_region
     regions_3_and_more_occ_with_density = calc_density_for_region_list(regions_3_and_more_occ)
 
-    # Remove regions containing overlapping repeats 
+    # Remove regions containing overlapping repeats
     regions_without_overlapping_repaets = remove_overlapping_kmers_from_region_list(regions_3_and_more_occ_with_density)
 
-    # Some regions might have only contained kmer rows with overlapping regions. 
-    # Therefore we need to remove once more empty kmers. 
+    # Some regions might have only contained kmer rows with overlapping regions.
+    # Therefore we need to remove once more empty kmers.
 
     x1 = filter_empty_kmer_regions(regions_without_overlapping_repaets)
-    
+
     #removes kets (kmer lengths with empty values )
     x2 = filter_out_empty_kmer_key_in_region_list(x1)
 
@@ -1108,16 +1108,16 @@ def prcoess_all_nc_regions_list(all_nc_regions, kmer_lengths_of_interest, region
 
 # note that we take the negative of the avarage score and thus the below should be flipped
 def filter_out_regions_above_score(region_list, score_thresh = -0.50):
-    
+
     new_list = []
-    
+
     neg_score = - score_thresh
-    
+
     for region in region_list:
         if region.cgc_val > neg_score:
             new_list.append(region)
-    
-    return new_list 
+
+    return new_list
 
 
 
@@ -1125,90 +1125,90 @@ def filter_out_regions_above_score(region_list, score_thresh = -0.50):
 
 # Removes row
 def remove_kmer_rows_with_densisty_below_thresh(region, d_threshold):
-    
+
     new_dict = dict()
-    
+
     for k, rows_list in region.kmer_info.items():
         new_rows = []
-        
+
         for row in rows_list:
-            
+
             if row[2] > d_threshold:
                 new_rows.append(row)
-                
+
         new_dict.update({k:new_rows})
 
         #print({k:new_rows})
-        
+
     region.kmer_info = new_dict
-        
-        
 
 
-# WHOLE KMER FILTERING AND SORTING FUNCITON. 
-# BEGINING WITH A ALL_NC_REGIONS LIST THAT HASNT HAD ITS KMERS COMPUTEDED. 
-# Returns a list of non-coding regions objects that satisfy the parameter arguments. 
+
+
+# WHOLE KMER FILTERING AND SORTING FUNCITON.
+# BEGINING WITH A ALL_NC_REGIONS LIST THAT HASNT HAD ITS KMERS COMPUTEDED.
+# Returns a list of non-coding regions objects that satisfy the parameter arguments.
 
 def prcoess_and_filter_all_nc_regions_list(all_nc_regions, kmer_lengths_of_interest, region_length_threshold=50, occurance_threshold=3, score_thresh = -0.75, d_tresh = 0.01):
-    
-    
+
+
     print('Filtering process\nTotal number of intial non coding regions: ', len(all_nc_regions))
-    
-    
+
+
     # Filter based on region length threshold. Default is 50 base
     long_enough_regions = filter_regions_by_length(all_nc_regions, region_length_threshold)
     print('Length filtering - number of nc regions above 50 in length: ', len(long_enough_regions))
-    
-    
-    # Compute kmers info 
+
+
+    # Compute kmers info
     x0 = calc_kmers_from_region_list(long_enough_regions, kmer_lengths_of_interest)
 
-    # Filter out kmers rows in each nc_objects kmer_info field based on occurances 
+    # Filter out kmers rows in each nc_objects kmer_info field based on occurances
     regions_3_and_more_occ = filter_region_list_by_kmer_occurence(x0, occurance_threshold)
     print('Kmer Occurence filtering - number of nc regions with kmers  having 3 or more occurances: ', len(regions_3_and_more_occ))
 
-    
+
     # Compute densities for each kmer row of each nc_region
     regions_3_and_more_occ_with_density = calc_density_for_region_list(regions_3_and_more_occ)
 
-    # Remove regions containing overlapping repeats 
+    # Remove regions containing overlapping repeats
     regions_without_overlapping_repaets = remove_overlapping_kmers_from_region_list(regions_3_and_more_occ_with_density)
 
-    
-    # Some regions might have only contained kmer rows with overlapping regions. 
-    # Therefore we need to remove once more empty kmers. 
+
+    # Some regions might have only contained kmer rows with overlapping regions.
+    # Therefore we need to remove once more empty kmers.
 
     x1 = filter_empty_kmer_regions(regions_without_overlapping_repaets)
-    
+
     #removes kets (kmer lengths with empty values )
     x2 = filter_out_empty_kmer_key_in_region_list(x1)
     print('Overlapp filtering - number of nc regions without overlapping repeats: ', len(x2))
 
-    # Keep only regions were 
+    # Keep only regions were
     x3 = filter_out_regions_above_score(x2, score_thresh)
-    
+
     print('Number of regions with scores "below" ', score_thresh ,': ', len(x3))
-    
-        
+
+
     x4 = sort_region_list_on_density(x3)
-    
-    # This changes the list and doesnt return anything 
+
+    # This changes the list and doesnt return anything
     sort_regions_by_score(x4)
-    
-    
-    ## 
+
+
+    ##
     for region in x4:
         remove_kmer_rows_with_densisty_below_thresh(region, d_tresh)
-        
-    
+
+
     x5 = filter_empty_kmer_regions(x4)
-    
+
     #removes kets (kmer lengths with empty values )
     x6 = filter_out_empty_kmer_key_in_region_list(x5)
     print('Number of regions with kmer_densities above ',d_tresh,' - ',   len(x6))
 
-    
 
-    
+
+
     print('\n---Done---')
     return x6
