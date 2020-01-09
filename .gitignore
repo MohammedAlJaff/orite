@@ -2,9 +2,11 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+#sum_of_squared_distances_jupyter.ipynb
 # C extensions
 *.so
+.ipynb_checkpoints
+test_script_mk.ipynb
 
 # Distribution / packaging
 .Python
@@ -102,3 +104,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+test.txt
+.DS_Store
