@@ -1,8 +1,4 @@
-'''
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-FUNCTIONS THAT ARE USED TO EXTRACT AND PARSE GENBANK DATA: START
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-'''
+# FUNCTIONS THAT ARE USED TO EXTRACT AND PARSE GENBANK DATA: START
 
 '''
 Input: file path to a genbank file
@@ -84,9 +80,11 @@ def get_true_nc_positions(nc_plus_intervals, nc_neg_intervals):
 
 
 '''
-COMMENT! 
+A possition list is a list containing every base that is an X in the genome. 
+X here could either be 'coding region' or non'coding region
+
 Input: list of all non-coding positions.
-Output: List of tuples with non-coding intervals
+Output: List of tuples with non-coding intervals (start and stop values)
 '''
 def position_list_to_intervals(pos_list):
 
@@ -124,6 +122,8 @@ def position_list_to_intervals(pos_list):
 
 
 '''
+a RANGE LIST IS A LIST OF LISTS. Each sublist contains all the nidex of a 
+genome for a speciific region
 Input: List of tuples with non-coding intervals
 Output: list of range of each non-coding interval
 '''
@@ -138,13 +138,14 @@ def interval_list_to_range_list(interval_list):
 
 
 '''
-INTERNAL / PRIVATE / HELPER
+Input: A file path for a genbank file
+Output: A list of strings that represent the start and stop position for each feature in 
+genebank file. 
 '''
 
 def raw_positions_strings_from_genbank(file_path):
 
     recs = [rec for rec in SeqIO.parse(file_path, "genbank")]
-
 
     raw_positions_str = []
 
@@ -160,7 +161,8 @@ def raw_positions_strings_from_genbank(file_path):
 
 
 '''
-INTERNAL / PRIVATE / HELPER
+Input: A raw position list of strings raw_positions_strings_from_genbank()
+ouput: Returns same thing as in put put each list has strand specific 
 '''
 def split_strands(raw_pos_list):
     plus_pos = []
@@ -180,7 +182,8 @@ def split_strands(raw_pos_list):
 
 
 '''
-INTERNAL / PRIVATE / HELPER
+Basically, return back a list with the same contents but case it in a tuple 
+instead of a string
 '''
 
 def make_into_valid_pos(strand_pos_raw):
@@ -199,7 +202,8 @@ def make_into_valid_pos(strand_pos_raw):
 
 
 '''
-INTERNAL / PRIVATE / HELPER
+For a given list of coding interval tuples. Find the 'in-between' non
+coding regions intervals and return it. 
 '''
 def get_non_coding_intervals(coding_intervals, length):
     non_coding_intervals = []
@@ -224,6 +228,7 @@ def get_non_coding_intervals(coding_intervals, length):
         non_coding_start = coding_intervals[i][1]+1
         non_coding_stop = length-1
         non_coding_intervals.append((non_coding_start, non_coding_stop))
+    
     return non_coding_intervals
 
 
@@ -247,7 +252,8 @@ def get_length_genbank(file_path):
 
 
 '''
-COMMENT
+Given a non goiding interval with a start and stop, and a sequences.
+This extracts the subsqeuence sequnces in said interval and returns this. 
 '''
 def extract_seq_from_non_coding_intervals(non_coding_intervals, seq):
 

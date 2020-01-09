@@ -1,7 +1,9 @@
 
+# FUNCTIONS TO SORT AND FILTER LISTS OF NC_REGION OBJECTS
+
 '''
-Input: a list of non-coding intervals
-Output: a list of the objects form NC_region class, containing sequence and cgc values
+Input: a list of non-coding intervals from genbank_to_non_coding_intervals()
+Output: a list of the objects form NC_region class. 
 '''
 def nc_intervals_to_nc_objects(nc_intervals, og_seq):
     nc_objcts = []
@@ -13,13 +15,11 @@ def nc_intervals_to_nc_objects(nc_intervals, og_seq):
     return nc_objcts
 
 
-
-
 '''
 Sortednc kmers in a region list.
-NOTE: The objects are notsorted in the region list
+NOTE: The objects themselves do not get resorted, 
+Only the rows of each kmers
 '''
-
 def sort_region_list_on_density(region_list):
 
     new_list = []
@@ -32,7 +32,11 @@ def sort_region_list_on_density(region_list):
 
 
 '''
-Removes kmer rows for each region in a region_List
+Input:
+Outout: 
+Inputs: A list of nc-objects.
+Outpout: Removes kmer rows for each region in a region_L and returns the 
+'surviving' regions.
 '''
 
 def remove_overlapping_kmers_from_region_list(region_list):
@@ -249,7 +253,6 @@ def filter_out_empty_kmer_key_in_region_list(region_list):
         region.filter_out_empty_kmer_lists_in_kmer_dict()
         new_list.append(region)
     return new_list
-
 
 
 

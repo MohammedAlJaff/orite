@@ -1,9 +1,4 @@
-'''
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-FUNCTIONS THAT OPERATE ON KMER_LISTS
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-'''
-
+# 4. FUNCTIONS THAT OPERATE ON KMER_LISTS
 
 '''
 kmer_list: A list of tuples. First element in tuple represents the kmer (String), the other elelment is a list. The first element in the list
@@ -53,7 +48,7 @@ def get_kmer_by_occurence(kmer_list, n):
 
 '''
 Input: A kmer_list
-Output:
+Output: Computes the density for each kmer row in the kmer_info attribute of a region list
 '''
 
 def calc_kmer_density(kmer_list):

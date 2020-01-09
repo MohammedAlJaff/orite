@@ -101,9 +101,8 @@ def gc_skew_sliding_window(seq, window_rad=500):
 Scales a cruve so that lowest point is at -1 and largest value is +1 by default
 
 Input: curve (numpy array)
-Output:
+Output: Scaled version of curve. Numpy array. 
 '''
-
 def scale_skew(curve, default_range=(-1,1)):
     return minmax_scale(X=curve, feature_range=default_range)
 
@@ -149,7 +148,6 @@ def max_rotate_seq_and_skew_calc(f, window_radius = 50000):
 
 
     final_gc, final_cgc = gc_skew_sliding_window(final, window_rad=window_radius)
-
 
     # Return sequence rotated to max
     max_rotated_fasta = final
